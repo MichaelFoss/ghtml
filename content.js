@@ -7,8 +7,6 @@
   const GHTML = {
     savedRange: null,
 
-    htmlButton: null,
-    testButton: null,
     execButton: null,
 
     boundSelectionHandler: null,
@@ -36,7 +34,7 @@
       this.log('  1. Open a Gmail compose window.');
       this.log('  2. Click inside the message body.');
       this.log('  3. Move the caret or select some text.');
-      this.log('  4. Click TEST or HTML.');
+      this.log('  4. Click EXEC.');
       this.log('');
       this.log(
         `⚡ insertHTML supported: ${document.queryCommandSupported?.('insertHTML')}`,
@@ -60,8 +58,6 @@
         true,
       );
 
-      this.htmlButton?.remove();
-      this.testButton?.remove();
       this.execButton?.remove();
 
       this.log('🧹 Playground destroyed.');
@@ -103,102 +99,7 @@
       }
     },
 
-    restoreSelection() {
-      if (!this.savedRange) {
-        this.warn('⚠️ No saved selection.');
-        return false;
-      }
-
-      const selection = window.getSelection();
-
-      selection.removeAllRanges();
-      selection.addRange(this.savedRange);
-
-      this.log('🎯 Selection restored.');
-
-      return true;
-    },
-
-    insertFragment(fragment) {
-      if (!this.restoreSelection()) {
-        alert('Place the cursor inside the Gmail message body first.');
-        return;
-      }
-
-      const range = this.savedRange;
-
-      this.log('✂️ Deleting selection...');
-
-      range.deleteContents();
-
-      this.log('📥 Inserting fragment...');
-
-      range.insertNode(fragment);
-
-      range.collapse(false);
-
-      const selection = window.getSelection();
-
-      selection.removeAllRanges();
-      selection.addRange(range);
-
-      this.savedRange = range.cloneRange();
-
-      this.log('✅ Insert complete.');
-      this.log("🤔 Press Cmd/Ctrl+Z now and observe Gmail's behavior.");
-    },
-
-    parseHtml(html) {
-      this.log('🌐 Parsing HTML...');
-
-      const template = document.createElement('template');
-      template.innerHTML = html;
-
-      this.log(
-        `🧩 Parsed ${template.content.childNodes.length} top-level node(s).`,
-      );
-
-      return template.content.cloneNode(true);
-    },
-
-    buildTestFragment() {
-      this.log('🧱 Building DOM manually...');
-
-      const fragment = document.createDocumentFragment();
-
-      const heading = document.createElement('h2');
-      heading.textContent = 'TEST';
-
-      const paragraph = document.createElement('p');
-
-      paragraph.append('This is ');
-
-      const strong = document.createElement('strong');
-      strong.textContent = 'bold';
-
-      paragraph.append(strong);
-      paragraph.append(', ');
-
-      const em = document.createElement('em');
-      em.textContent = 'italic';
-
-      paragraph.append(em);
-      paragraph.append(', and ');
-
-      const link = document.createElement('a');
-      link.href = 'https://example.com';
-      link.textContent = 'a link';
-
-      paragraph.append(link);
-      paragraph.append('.');
-
-      fragment.append(heading);
-      fragment.append(paragraph);
-
-      return fragment;
-    },
-
-    promptForHtml() {
+    promptForExecHtml() {
       const html = prompt(
         'Paste HTML',
         `<h2>Hello</h2>
@@ -210,12 +111,15 @@
         return;
       }
 
-      this.log('📄 HTML received:');
-      this.log(html);
+      this.log("🎯 Using Gmail's native selection.");
 
-      const fragment = this.parseHtml(html);
+      this.log("⚡ Executing document.execCommand('insertHTML')...");
 
-      this.insertFragment(fragment);
+      const result = document.execCommand('insertHTML', false, html);
+
+      this.log(`📋 execCommand returned: ${result}`);
+
+      this.log('🤔 Try Cmd/Ctrl+Z now.');
     },
 
     createButton(label, right, clickHandler) {
@@ -248,46 +152,12 @@
       return button;
     },
 
-    promptForExecHtml() {
-      const html = prompt(
-        'Paste HTML',
-        `<h2>Hello</h2>
-<p>This is <strong>bold</strong>, <em>italic</em>, and <a href="https://example.com">a link</a>.</p>`,
-      );
-
-      if (html == null) {
-        this.log('🚫 User cancelled.');
-        return;
-      }
-
-      if (!this.restoreSelection()) {
-        return;
-      }
-
-      this.log("⚡ Executing document.execCommand('insertHTML')...");
-
-      const result = document.execCommand('insertHTML', false, html);
-
-      this.log(`📋 execCommand returned: ${result}`);
-
-      this.log('🤔 Try Cmd/Ctrl+Z now.');
-    },
-
     createButtons() {
-      this.testButton = this.createButton('TEST', 220, () => {
-        const fragment = this.buildTestFragment();
-        this.insertFragment(fragment);
-      });
-
-      this.htmlButton = this.createButton('HTML', 120, () => {
-        this.promptForHtml();
-      });
-
       this.execButton = this.createButton('EXEC', 20, () => {
         this.promptForExecHtml();
       });
 
-      this.log('🟢 TEST, HTML and EXEC buttons created.');
+      this.log('🟢 EXEC button created.');
     },
   };
 
