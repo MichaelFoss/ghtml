@@ -1,0 +1,35 @@
+{
+  "name": "ghtml",
+  "type": "module",
+  "version": "0.0.1",
+  "homepage": "https://github.com/MichaelFoss/GHTML",
+  "bugs": {
+    "url": "https://github.com/MichaelFoss/GHTML/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MichaelFoss/GHTML.git"
+  },
+  "author": "Michael Foss <michael@mikefoss.com>",
+  "license": "MIT",
+  "engines": {
+    "node": "^22"
+  },
+  "scripts": {
+    "check": "yarn lint && yarn lint:md && yarn format:check",
+    "check:fix": "yarn format && yarn lint --fix && yarn lint:md:fix",
+    "lint:md": "markdownlint-cli2 \"**/*.md\" \"!node_modules/**\" \"!dist/**\"",
+    "lint:md:fix": "markdownlint-cli2 \"**/*.md\" \"!node_modules/**\" \"!dist/**\" --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "lint": "eslint ."
+  },
+  "private": true,
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.7.0",
+    "globals": "^17.7.0",
+    "markdownlint-cli2": "^0.23.0",
+    "prettier": "^3.9.5"
+  }
+}
