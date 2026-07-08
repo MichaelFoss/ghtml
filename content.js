@@ -8,6 +8,8 @@
     savedRange: null,
 
     execButton: null,
+    dialog: null,
+    textarea: null,
 
     boundSelectionHandler: null,
 
@@ -59,6 +61,7 @@
       );
 
       this.execButton?.remove();
+      this.dialog?.remove();
 
       this.log('🧹 Playground destroyed.');
     },
@@ -99,27 +102,79 @@
       }
     },
 
-    promptForExecHtml() {
-      const html = prompt(
-        'Paste HTML',
-        `<h2>Hello</h2>
-<p>This is <strong>bold</strong>, <em>italic</em>, and <a href="https://example.com">a link</a>.</p>`,
-      );
+    showDialog() {
+      if (!this.dialog) {
+        const dialog = document.createElement('div');
+        Object.assign(dialog.style, {
+          position: 'fixed',
+          right: '20px',
+          bottom: '70px',
+          backgroundColor: 'white',
+          border: '1px solid #ccc',
+          padding: '10px',
+          zIndex: '2147483647',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          maxWidth: 'fit-content',
+        });
 
-      if (html == null) {
-        this.log('🚫 User cancelled.');
-        return;
+        const title = document.createElement('h3');
+        title.textContent = 'HTML';
+        dialog.appendChild(title);
+
+        const textarea = document.createElement('textarea');
+        textarea.rows = 12;
+        textarea.cols = 60;
+        textarea.value = `<h2>Hello</h2>
+<p>This is <strong>bold</strong>, <em>italic</em>, and <a href="https://example.com">a link</a>.</p>`;
+        dialog.appendChild(textarea);
+
+        const buttonsDiv = document.createElement('div');
+        buttonsDiv.style.marginTop = '8px';
+
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = 'Cancel';
+        cancelButton.addEventListener('mousedown', (event) => {
+          event.preventDefault();
+        });
+        cancelButton.addEventListener('click', () => {
+          this.dialog.style.display = 'none';
+        });
+        buttonsDiv.appendChild(cancelButton);
+
+        const insertButton = document.createElement('button');
+        insertButton.textContent = 'Insert';
+        insertButton.style.marginLeft = '8px';
+        insertButton.addEventListener('mousedown', (event) => {
+          event.preventDefault();
+        });
+        insertButton.addEventListener('click', () => {
+          if (this.savedRange) {
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(this.savedRange);
+          }
+          const result = document.execCommand(
+            'insertHTML',
+            false,
+            this.textarea.value,
+          );
+          this.log(`📋 execCommand returned: ${result}`);
+          this.log('🤔 Try Cmd/Ctrl+Z now.');
+          this.dialog.style.display = 'none';
+        });
+        buttonsDiv.appendChild(insertButton);
+
+        dialog.appendChild(buttonsDiv);
+
+        document.body.appendChild(dialog);
+
+        this.dialog = dialog;
+        this.textarea = textarea;
       }
 
-      this.log("🎯 Using Gmail's native selection.");
-
-      this.log("⚡ Executing document.execCommand('insertHTML')...");
-
-      const result = document.execCommand('insertHTML', false, html);
-
-      this.log(`📋 execCommand returned: ${result}`);
-
-      this.log('🤔 Try Cmd/Ctrl+Z now.');
+      this.dialog.style.display = 'block';
+      this.textarea.focus();
+      this.textarea.select();
     },
 
     createButton(label, right, clickHandler) {
@@ -157,7 +212,7 @@
 
     createButtons() {
       this.execButton = this.createButton('EXEC', 20, () => {
-        this.promptForExecHtml();
+        this.showDialog();
       });
 
       this.log('🟢 EXEC button created.');
