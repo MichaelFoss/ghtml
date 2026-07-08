@@ -124,6 +124,9 @@
 
     createButton(label, right, clickHandler) {
       const button = document.createElement('button');
+      button.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+      });
 
       button.textContent = label;
 
