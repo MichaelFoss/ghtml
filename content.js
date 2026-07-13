@@ -7,7 +7,7 @@
   const GHTML = {
     savedRange: null,
 
-    execButton: null,
+    htmlButton: null,
     dialog: null,
     textarea: null,
 
@@ -36,10 +36,12 @@
       this.log('  1. Open a Gmail compose window.');
       this.log('  2. Click inside the message body.');
       this.log('  3. Move the caret or select some text.');
-      this.log('  4. Click EXEC.');
+      this.log('  4. Click HTML.');
       this.log('');
       this.log(
-        `⚡ insertHTML supported: ${document.queryCommandSupported?.('insertHTML')}`,
+        `⚡ insertHTML supported: ${document.queryCommandSupported?.(
+          'insertHTML',
+        )}`,
       );
 
       this.boundSelectionHandler = this.onSelectionChange.bind(this);
@@ -60,16 +62,16 @@
         true,
       );
 
-      this.execButton?.remove();
+      this.htmlButton?.remove();
       this.dialog?.remove();
 
       this.log('🧹 Playground destroyed.');
     },
 
-    isMessageBody(el) {
+    isMessageBody(element) {
       return (
-        el instanceof HTMLElement &&
-        el.matches(
+        element instanceof HTMLElement &&
+        element.matches(
           '[g_editable="true"][role="textbox"][contenteditable="true"]',
         )
       );
@@ -105,6 +107,7 @@
     showDialog() {
       if (!this.dialog) {
         const dialog = document.createElement('div');
+
         Object.assign(dialog.style, {
           position: 'fixed',
           right: '20px',
@@ -133,45 +136,61 @@
 
         const cancelButton = document.createElement('button');
         cancelButton.textContent = 'Cancel';
+
         cancelButton.addEventListener('mousedown', (event) => {
           event.preventDefault();
         });
+
         cancelButton.addEventListener('click', () => {
           this.dialog.style.display = 'none';
+          this.htmlButton.disabled = false;
+
+          this.restoreEditor();
         });
+
         buttonsDiv.appendChild(cancelButton);
 
         const insertButton = document.createElement('button');
         insertButton.textContent = 'Insert';
         insertButton.style.marginLeft = '8px';
+
         insertButton.addEventListener('mousedown', (event) => {
           event.preventDefault();
         });
+
         insertButton.addEventListener('click', () => {
-          if (this.savedRange) {
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(this.savedRange);
+          const html = this.textarea.value;
+
+          this.dialog.style.display = 'none';
+          this.htmlButton.disabled = false;
+
+          if (!this.restoreEditor()) {
+            return;
           }
+
+          this.log(
+            "⚡ Executing document.execCommand('insertHTML')...",
+          );
+
           const result = document.execCommand(
             'insertHTML',
             false,
-            this.textarea.value,
+            html,
           );
+
           this.log(`📋 execCommand returned: ${result}`);
           this.log('🤔 Try Cmd/Ctrl+Z now.');
-          this.dialog.style.display = 'none';
         });
+
         buttonsDiv.appendChild(insertButton);
-
         dialog.appendChild(buttonsDiv);
-
         document.body.appendChild(dialog);
 
         this.dialog = dialog;
         this.textarea = textarea;
       }
 
+      this.htmlButton.disabled = true;
       this.dialog.style.display = 'block';
       this.textarea.focus();
       this.textarea.select();
@@ -179,6 +198,7 @@
 
     createButton(label, right, clickHandler) {
       const button = document.createElement('button');
+
       button.addEventListener('mousedown', (event) => {
         event.preventDefault();
       });
@@ -211,11 +231,11 @@
     },
 
     createButtons() {
-      this.execButton = this.createButton('EXEC', 20, () => {
+      this.htmlButton = this.createButton('HTML', 20, () => {
         this.showDialog();
       });
 
-      this.log('🟢 EXEC button created.');
+      this.log('🟢 HTML button created.');
     },
   };
 
