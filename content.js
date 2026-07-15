@@ -8,10 +8,13 @@
     savedRange: null,
 
     htmlButton: null,
+    composeButtons: new Map(),
     dialog: null,
     textarea: null,
 
     boundSelectionHandler: null,
+    boundPositionHandler: null,
+    composeObserver: null,
 
     log(...args) {
       console.log(`[GHTML 🧪] ${args.join(' ')}`);
@@ -45,14 +48,22 @@
       );
 
       this.boundSelectionHandler = this.onSelectionChange.bind(this);
+      this.boundPositionHandler =
+        this.positionComposeButtons.bind(this);
 
       document.addEventListener(
         'selectionchange',
         this.boundSelectionHandler,
         true,
       );
+      window.addEventListener('resize', this.boundPositionHandler);
+      window.addEventListener(
+        'scroll',
+        this.boundPositionHandler,
+        true,
+      );
 
-      this.createButtons();
+      this.observeComposeWindows();
     },
 
     destroy() {
@@ -61,8 +72,19 @@
         this.boundSelectionHandler,
         true,
       );
+      window.removeEventListener('resize', this.boundPositionHandler);
+      window.removeEventListener(
+        'scroll',
+        this.boundPositionHandler,
+        true,
+      );
+      this.composeObserver?.disconnect();
 
-      this.htmlButton?.remove();
+      for (const button of this.composeButtons.values()) {
+        button.remove();
+      }
+
+      this.composeButtons.clear();
       this.dialog?.remove();
 
       this.log('🧹 Playground destroyed.');
@@ -246,7 +268,7 @@
       this.textarea.select();
     },
 
-    createButton(label, right, clickHandler) {
+    createButton(label, clickHandler) {
       const button = document.createElement('button');
 
       button.addEventListener('mousedown', (event) => {
@@ -257,8 +279,6 @@
 
       Object.assign(button.style, {
         position: 'fixed',
-        right: `${right}px`,
-        bottom: '20px',
         zIndex: '2147483647',
         padding: '10px 16px',
         fontSize: '14px',
@@ -280,12 +300,84 @@
       return button;
     },
 
-    createButtons() {
-      this.htmlButton = this.createButton('HTML', 20, () => {
+    findComposeWindows() {
+      const messageBodies = document.querySelectorAll(
+        '[g_editable="true"][role="textbox"][contenteditable="true"]',
+      );
+      const composeWindows = new Set();
+
+      for (const messageBody of messageBodies) {
+        const composeWindow = messageBody.closest('[role="dialog"]');
+
+        if (composeWindow instanceof HTMLElement) {
+          composeWindows.add(composeWindow);
+        }
+      }
+
+      return composeWindows;
+    },
+
+    positionButton(composeWindow, button) {
+      const composeRect = composeWindow.getBoundingClientRect();
+      const spacing = 8;
+      const left = Math.max(
+        spacing,
+        composeRect.right - button.offsetWidth - spacing,
+      );
+      const top = Math.max(spacing, composeRect.top + spacing);
+
+      button.style.left = `${left}px`;
+      button.style.top = `${top}px`;
+    },
+
+    positionComposeButtons() {
+      for (const [composeWindow, button] of this.composeButtons) {
+        this.positionButton(composeWindow, button);
+      }
+    },
+
+    createComposeButton(composeWindow) {
+      const button = this.createButton('HTML', () => {
+        this.htmlButton = button;
         this.showDialog();
       });
 
-      this.log('🟢 HTML button created.');
+      this.composeButtons.set(composeWindow, button);
+      this.positionButton(composeWindow, button);
+      this.log('🟢 Compose HTML button created.');
+    },
+
+    syncComposeButtons() {
+      const composeWindows = this.findComposeWindows();
+
+      for (const composeWindow of composeWindows) {
+        if (!this.composeButtons.has(composeWindow)) {
+          this.createComposeButton(composeWindow);
+        }
+      }
+
+      for (const [composeWindow, button] of this.composeButtons) {
+        if (!composeWindows.has(composeWindow)) {
+          button.remove();
+          this.composeButtons.delete(composeWindow);
+          this.log('🔴 Compose HTML button removed.');
+        }
+      }
+
+      this.positionComposeButtons();
+    },
+
+    observeComposeWindows() {
+      this.composeObserver = new MutationObserver(() => {
+        this.syncComposeButtons();
+      });
+
+      this.composeObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+
+      this.syncComposeButtons();
     },
   };
 

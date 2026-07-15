@@ -41,11 +41,12 @@ Current prototype:
 - Preserve Gmail undo/redo behavior
 - Preserve Gmail selection behavior
 - Custom HTML dialog
+- One floating HTML button per compose window
+- Multiple simultaneous compose windows
 - Zero dependencies
 
 Planned:
 
-- One HTML button per compose window
 - Gmail toolbar integration
 - HTML sanitization
 - Improved dialog
