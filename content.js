@@ -104,6 +104,56 @@
       }
     },
 
+    restoreSelection() {
+      if (!this.savedRange) {
+        this.warn('⚠️ No saved Gmail selection.');
+        return false;
+      }
+
+      const selection = window.getSelection();
+
+      if (!selection) {
+        this.warn('⚠️ Browser selection is unavailable.');
+        return false;
+      }
+
+      selection.removeAllRanges();
+      selection.addRange(this.savedRange);
+
+      return true;
+    },
+
+    restoreEditor() {
+      if (!this.savedRange) {
+        this.warn('⚠️ No saved Gmail selection.');
+        return false;
+      }
+
+      const editorNode =
+        this.savedRange.startContainer.nodeType === Node.ELEMENT_NODE
+          ? this.savedRange.startContainer
+          : this.savedRange.startContainer.parentElement;
+
+      const editor = editorNode?.closest(
+        '[g_editable="true"][role="textbox"][contenteditable="true"]',
+      );
+
+      if (!(editor instanceof HTMLElement)) {
+        this.warn('⚠️ Gmail message body could not be restored.');
+        return false;
+      }
+
+      editor.focus();
+
+      if (!this.restoreSelection()) {
+        return false;
+      }
+
+      this.log('🎯 Gmail editor focused.');
+
+      return true;
+    },
+
     showDialog() {
       if (!this.dialog) {
         const dialog = document.createElement('div');
@@ -164,7 +214,7 @@
           this.dialog.style.display = 'none';
           this.htmlButton.disabled = false;
 
-          if (!this.restoreEditor()) {
+          if (!this.restoreSelection()) {
             return;
           }
 
