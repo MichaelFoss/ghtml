@@ -1,4 +1,8 @@
 (() => {
+  const MESSAGE_BODY_SELECTOR =
+    '[g_editable="true"][role="textbox"][contenteditable="true"]';
+  const COMPOSE_WINDOW_SELECTOR = '[role="dialog"]';
+
   if (window.GHTML) {
     console.warn('[GHTML 🧪] ♻️ Reloading playground...');
     window.GHTML.destroy();
@@ -95,10 +99,16 @@
     isMessageBody(element) {
       return (
         element instanceof HTMLElement &&
-        element.matches(
-          '[g_editable="true"][role="textbox"][contenteditable="true"]',
-        )
+        element.matches(MESSAGE_BODY_SELECTOR)
       );
+    },
+
+    findMessageBody(element) {
+      return element?.closest(MESSAGE_BODY_SELECTOR);
+    },
+
+    findComposeWindow(element) {
+      return element.closest(COMPOSE_WINDOW_SELECTOR);
     },
 
     onSelectionChange() {
@@ -158,9 +168,7 @@
           ? this.savedRange.startContainer
           : this.savedRange.startContainer.parentElement;
 
-      const editor = editorNode?.closest(
-        '[g_editable="true"][role="textbox"][contenteditable="true"]',
-      );
+      const editor = this.findMessageBody(editorNode);
 
       if (!(editor instanceof HTMLElement)) {
         this.warn('⚠️ Gmail message body could not be restored.');
@@ -310,12 +318,12 @@
 
     findComposeWindows() {
       const messageBodies = document.querySelectorAll(
-        '[g_editable="true"][role="textbox"][contenteditable="true"]',
+        MESSAGE_BODY_SELECTOR,
       );
       const composeWindows = new Set();
 
       for (const messageBody of messageBodies) {
-        const composeWindow = messageBody.closest('[role="dialog"]');
+        const composeWindow = this.findComposeWindow(messageBody);
 
         if (composeWindow instanceof HTMLElement) {
           composeWindows.add(composeWindow);
