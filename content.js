@@ -7,7 +7,8 @@
   const GHTML = {
     savedRange: null,
 
-    htmlButton: null,
+    activeComposeWindow: null,
+    activeComposeButton: null,
     composeButtons: new Map(),
     dialog: null,
     textarea: null,
@@ -85,6 +86,7 @@
       }
 
       this.composeButtons.clear();
+      this.clearActiveCompose();
       this.dialog?.remove();
 
       this.log('🧹 Playground destroyed.');
@@ -176,6 +178,12 @@
       return true;
     },
 
+    clearActiveCompose() {
+      this.activeComposeButton?.removeAttribute('disabled');
+      this.activeComposeWindow = null;
+      this.activeComposeButton = null;
+    },
+
     showDialog() {
       if (!this.dialog) {
         const dialog = document.createElement('div');
@@ -215,7 +223,7 @@
 
         cancelButton.addEventListener('click', () => {
           this.dialog.style.display = 'none';
-          this.htmlButton.disabled = false;
+          this.clearActiveCompose();
 
           this.restoreEditor();
         });
@@ -234,7 +242,7 @@
           const html = this.textarea.value;
 
           this.dialog.style.display = 'none';
-          this.htmlButton.disabled = false;
+          this.clearActiveCompose();
 
           if (!this.restoreSelection()) {
             return;
@@ -262,7 +270,7 @@
         this.textarea = textarea;
       }
 
-      this.htmlButton.disabled = true;
+      this.activeComposeButton.disabled = true;
       this.dialog.style.display = 'block';
       this.textarea.focus();
       this.textarea.select();
@@ -338,7 +346,8 @@
 
     createComposeButton(composeWindow) {
       const button = this.createButton('HTML', () => {
-        this.htmlButton = button;
+        this.activeComposeWindow = composeWindow;
+        this.activeComposeButton = button;
         this.showDialog();
       });
 
