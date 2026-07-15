@@ -111,6 +111,29 @@
       return element.closest(COMPOSE_WINDOW_SELECTOR);
     },
 
+    isComposeWindowMinimized(composeWindow) {
+      const messageBody = composeWindow.querySelector(
+        MESSAGE_BODY_SELECTOR,
+      );
+
+      if (!(messageBody instanceof HTMLElement)) {
+        return true;
+      }
+
+      const composeRect = composeWindow.getBoundingClientRect();
+      const messageRect = messageBody.getBoundingClientRect();
+
+      return (
+        messageBody.getClientRects().length === 0 ||
+        messageRect.width === 0 ||
+        messageRect.height === 0 ||
+        messageRect.right <= composeRect.left ||
+        messageRect.left >= composeRect.right ||
+        messageRect.bottom <= composeRect.top ||
+        messageRect.top >= composeRect.bottom
+      );
+    },
+
     onSelectionChange() {
       if (!this.isMessageBody(document.activeElement)) {
         return;
@@ -333,14 +356,25 @@
       return composeWindows;
     },
 
-    positionButton(composeWindow, button) {
+    getComposeButtonPosition(composeWindow) {
       const composeRect = composeWindow.getBoundingClientRect();
       const spacing = 8;
-      const left = Math.max(
-        spacing,
-        composeRect.right - button.offsetWidth - spacing,
-      );
+      const left = Math.max(spacing, composeRect.left + spacing);
       const top = Math.max(spacing, composeRect.top + spacing);
+
+      return { left, top };
+    },
+
+    positionButton(composeWindow, button) {
+      if (this.isComposeWindowMinimized(composeWindow)) {
+        button.hidden = true;
+        return;
+      }
+
+      button.hidden = false;
+
+      const { left, top } =
+        this.getComposeButtonPosition(composeWindow);
 
       button.style.left = `${left}px`;
       button.style.top = `${top}px`;
@@ -385,11 +419,19 @@
     },
 
     observeComposeWindows() {
-      this.composeObserver = new MutationObserver(() => {
+      this.composeObserver = new MutationObserver((mutations) => {
+        const buttons = new Set(this.composeButtons.values());
+
+        if (mutations.every(({ target }) => buttons.has(target))) {
+          return;
+        }
+
         this.syncComposeButtons();
       });
 
       this.composeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style'],
         childList: true,
         subtree: true,
       });
