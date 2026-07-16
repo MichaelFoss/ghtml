@@ -23,7 +23,7 @@ Do not modify behavior outside the active task.
 
 ## Task Status
 
-- [ ] Task 1 — Improve dialog layout
+- [x] Task 1 — Improve dialog layout
 - [ ] Task 2 — Add dialog keyboard controls
 - [ ] Task 3 — Improve textarea editing
 - [ ] Task 4 — Add dialog dragging and persistence

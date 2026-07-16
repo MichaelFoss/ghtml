@@ -223,18 +223,37 @@
 
         Object.assign(dialog.style, {
           position: 'fixed',
-          right: '20px',
-          bottom: '70px',
-          backgroundColor: 'white',
-          border: '1px solid #ccc',
-          padding: '10px',
+          right: '16px',
+          bottom: '64px',
+          display: 'flex',
+          flexDirection: 'column',
+          width: 'min(600px, calc(100vw - 32px))',
+          height: 'min(420px, calc(100vh - 96px))',
+          minWidth: 'min(320px, calc(100vw - 32px))',
+          minHeight: 'min(240px, calc(100vh - 96px))',
+          maxWidth: 'calc(100vw - 32px)',
+          maxHeight: 'calc(100vh - 96px)',
+          boxSizing: 'border-box',
+          overflow: 'auto',
+          backgroundColor: '#fff',
+          border: '1px solid #dadce0',
+          borderRadius: '8px',
+          padding: '24px',
           zIndex: '2147483647',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-          maxWidth: 'fit-content',
+          boxShadow:
+            '0 8px 24px rgba(60, 64, 67, 0.24), 0 2px 6px rgba(60, 64, 67, 0.16)',
+          color: '#202124',
+          fontFamily: 'Roboto, Arial, sans-serif',
         });
 
         const title = document.createElement('h3');
         title.textContent = 'HTML';
+        Object.assign(title.style, {
+          margin: '0 0 16px',
+          fontSize: '20px',
+          fontWeight: '500',
+          lineHeight: '28px',
+        });
         dialog.appendChild(title);
 
         const textarea = document.createElement('textarea');
@@ -242,13 +261,46 @@
         textarea.cols = 60;
         textarea.value = `<h2>Hello</h2>
 <p>This is <strong>bold</strong>, <em>italic</em>, and <a href="https://example.com">a link</a>.</p>`;
+        Object.assign(textarea.style, {
+          flex: '1 1 auto',
+          width: '100%',
+          minHeight: '100px',
+          boxSizing: 'border-box',
+          border: '1px solid #dadce0',
+          borderRadius: '4px',
+          padding: '12px',
+          backgroundColor: '#fff',
+          color: '#202124',
+          fontFamily: 'Roboto Mono, monospace',
+          fontSize: '13px',
+          lineHeight: '20px',
+          outlineColor: '#1a73e8',
+        });
         dialog.appendChild(textarea);
 
         const buttonsDiv = document.createElement('div');
-        buttonsDiv.style.marginTop = '8px';
+        Object.assign(buttonsDiv.style, {
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '8px',
+          marginTop: '20px',
+        });
 
         const cancelButton = document.createElement('button');
         cancelButton.textContent = 'Cancel';
+        Object.assign(cancelButton.style, {
+          minWidth: '72px',
+          height: '36px',
+          border: '1px solid #dadce0',
+          borderRadius: '4px',
+          padding: '0 16px',
+          backgroundColor: '#fff',
+          color: '#1a73e8',
+          fontFamily: 'Roboto, Arial, sans-serif',
+          fontSize: '14px',
+          fontWeight: '500',
+          cursor: 'pointer',
+        });
 
         cancelButton.addEventListener('mousedown', (event) => {
           event.preventDefault();
@@ -265,7 +317,19 @@
 
         const insertButton = document.createElement('button');
         insertButton.textContent = 'Insert';
-        insertButton.style.marginLeft = '8px';
+        Object.assign(insertButton.style, {
+          minWidth: '72px',
+          height: '36px',
+          border: '1px solid #1a73e8',
+          borderRadius: '4px',
+          padding: '0 16px',
+          backgroundColor: '#1a73e8',
+          color: '#fff',
+          fontFamily: 'Roboto, Arial, sans-serif',
+          fontSize: '14px',
+          fontWeight: '500',
+          cursor: 'pointer',
+        });
 
         insertButton.addEventListener('mousedown', (event) => {
           event.preventDefault();
@@ -306,7 +370,7 @@
       }
 
       this.activeComposeButton.disabled = true;
-      this.dialog.style.display = 'block';
+      this.dialog.style.display = 'flex';
       this.textarea.focus();
       this.textarea.select();
     },
