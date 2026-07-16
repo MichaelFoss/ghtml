@@ -28,7 +28,7 @@ Do not modify behavior outside the active task.
 - [x] Task 3 — Improve textarea editing
 - [x] Task 4 — Add dialog dragging and persistence
 - [x] Task 4.5 - Polish dialog chrome
-- [ ] Task 5 — Make dialog modal
+- [x] Task 5 — Make dialog modal
 - [ ] Task 5.5 — Preserve compose ownership
 - [ ] Task 5.6 — Delay launcher activation until Gmail UI is ready
 - [ ] Task 6 — Add dialog unit tests

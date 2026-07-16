@@ -4,6 +4,8 @@
   const COMPOSE_WINDOW_SELECTOR = '[role="dialog"]';
   const DIALOG_STATE_KEY = 'dialogState';
   const MIN_VISIBLE_TITLE_WIDTH = 48;
+  const LAUNCHER_Z_INDEX = '2147483647';
+  const MODAL_LAUNCHER_Z_INDEX = '2147483645';
   const INDENT = '  ';
 
   function getSelectedLineStarts(value, selectionStart, selectionEnd) {
@@ -119,6 +121,7 @@
     activeComposeWindow: null,
     activeComposeButton: null,
     composeButtons: new Map(),
+    backdrop: null,
     dialog: null,
     textarea: null,
     cancelButton: null,
@@ -127,6 +130,7 @@
     boundSelectionHandler: null,
     boundPositionHandler: null,
     boundDialogKeydownHandler: null,
+    boundModalFocusHandler: null,
     dragOffset: null,
     composeObserver: null,
     composeResizeObserver: null,
@@ -202,10 +206,17 @@
 
       this.composeButtons.clear();
       this.clearActiveCompose();
-      this.dialog?.removeEventListener(
+      window.removeEventListener(
         'keydown',
         this.boundDialogKeydownHandler,
+        true,
       );
+      document.removeEventListener(
+        'focusin',
+        this.boundModalFocusHandler,
+        true,
+      );
+      this.backdrop?.remove();
       this.dialog?.remove();
 
       this.log('🧹 Playground destroyed.');
@@ -332,12 +343,31 @@
 
     closeDialog() {
       this.saveDialogState();
-      this.dialog.removeEventListener(
+      window.removeEventListener(
         'keydown',
         this.boundDialogKeydownHandler,
+        true,
+      );
+      document.removeEventListener(
+        'focusin',
+        this.boundModalFocusHandler,
+        true,
       );
       this.dialog.style.display = 'none';
+      this.backdrop.style.display = 'none';
+      this.setLauncherModalState(false);
       this.clearActiveCompose();
+      this.restoreEditor();
+    },
+
+    setLauncherModalState(isModal) {
+      const zIndex = isModal
+        ? MODAL_LAUNCHER_Z_INDEX
+        : LAUNCHER_Z_INDEX;
+
+      for (const button of this.composeButtons.values()) {
+        button.style.zIndex = zIndex;
+      }
     },
 
     getDialogPosition() {
@@ -439,6 +469,8 @@
     },
 
     onDialogKeydown(event) {
+      event.stopPropagation();
+
       if (event.key === 'Escape') {
         event.preventDefault();
         this.cancelButton.click();
@@ -448,6 +480,12 @@
       if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         this.insertButton.click();
+        return;
+      }
+
+      if (event.target !== this.textarea && event.key === 'Tab') {
+        event.preventDefault();
+        this.moveDialogFocus(event.shiftKey);
         return;
       }
 
@@ -486,6 +524,46 @@
       this.applyTextareaEdit(edit);
     },
 
+    moveDialogFocus(moveBackward) {
+      const controls = [
+        this.dialog.querySelector('[aria-label="Close"]'),
+        this.textarea,
+        this.cancelButton,
+        this.insertButton,
+      ];
+      const currentIndex = controls.indexOf(document.activeElement);
+      const offset = moveBackward ? -1 : 1;
+      const nextIndex =
+        (currentIndex + offset + controls.length) % controls.length;
+
+      controls[nextIndex].focus();
+    },
+
+    keepFocusInDialog(event) {
+      if (this.dialog.contains(event.target)) {
+        return;
+      }
+
+      this.textarea.focus();
+    },
+
+    addButtonInteractionStyles(button, styles) {
+      const applyRestingStyle = () => {
+        Object.assign(button.style, styles.resting);
+      };
+
+      button.addEventListener('mouseenter', () => {
+        Object.assign(button.style, styles.hover);
+      });
+      button.addEventListener('mouseleave', applyRestingStyle);
+      button.addEventListener('focus', () => {
+        if (button.matches(':focus-visible')) {
+          Object.assign(button.style, styles.focus);
+        }
+      });
+      button.addEventListener('blur', applyRestingStyle);
+    },
+
     applyTextareaEdit(edit) {
       this.textarea.value = edit.value;
       this.textarea.setSelectionRange(
@@ -496,7 +574,20 @@
 
     showDialog() {
       if (!this.dialog) {
+        const backdrop = document.createElement('div');
+        backdrop.className = 'ghtml-backdrop';
+        Object.assign(backdrop.style, {
+          position: 'fixed',
+          inset: '0',
+          display: 'none',
+          backgroundColor: 'rgba(32, 33, 36, 0.32)',
+          zIndex: '2147483646',
+        });
+
         const dialog = document.createElement('div');
+        dialog.className = 'ghtml-dialog';
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-modal', 'true');
 
         Object.assign(dialog.style, {
           position: 'fixed',
@@ -557,7 +648,9 @@
         );
 
         const title = document.createElement('h3');
+        title.id = 'ghtml-dialog-title';
         title.textContent = 'Insert HTML';
+        dialog.setAttribute('aria-labelledby', title.id);
         Object.assign(title.style, {
           margin: '0',
           fontSize: '16px',
@@ -589,6 +682,20 @@
         closeButton.addEventListener('pointerdown', (event) => {
           event.preventDefault();
           event.stopPropagation();
+        });
+        this.addButtonInteractionStyles(closeButton, {
+          resting: {
+            backgroundColor: 'transparent',
+            boxShadow: 'none',
+          },
+          hover: {
+            backgroundColor: '#e4e9f0',
+            boxShadow: 'none',
+          },
+          focus: {
+            backgroundColor: '#e8f0fe',
+            boxShadow: '0 0 0 2px #1a73e8',
+          },
         });
         header.appendChild(closeButton);
         dialog.appendChild(header);
@@ -646,11 +753,23 @@
         cancelButton.addEventListener('mousedown', (event) => {
           event.preventDefault();
         });
+        this.addButtonInteractionStyles(cancelButton, {
+          resting: {
+            backgroundColor: '#fff',
+            boxShadow: 'none',
+          },
+          hover: {
+            backgroundColor: '#f8faff',
+            boxShadow: '0 1px 2px rgba(60, 64, 67, 0.2)',
+          },
+          focus: {
+            backgroundColor: '#fff',
+            boxShadow: '0 0 0 2px #aecbfa',
+          },
+        });
 
         cancelButton.addEventListener('click', () => {
           this.closeDialog();
-
-          this.restoreEditor();
         });
 
         closeButton.addEventListener('click', () => {
@@ -677,6 +796,20 @@
 
         insertButton.addEventListener('mousedown', (event) => {
           event.preventDefault();
+        });
+        this.addButtonInteractionStyles(insertButton, {
+          resting: {
+            backgroundColor: '#1a73e8',
+            boxShadow: 'none',
+          },
+          hover: {
+            backgroundColor: '#1765cc',
+            boxShadow: '0 1px 2px rgba(60, 64, 67, 0.3)',
+          },
+          focus: {
+            backgroundColor: '#1a73e8',
+            boxShadow: '0 0 0 2px #aecbfa',
+          },
         });
 
         insertButton.addEventListener('click', () => {
@@ -706,17 +839,22 @@
 
         buttonsDiv.appendChild(insertButton);
         dialog.appendChild(buttonsDiv);
+        document.body.appendChild(backdrop);
         document.body.appendChild(dialog);
 
+        this.backdrop = backdrop;
         this.dialog = dialog;
         this.textarea = textarea;
         this.cancelButton = cancelButton;
         this.insertButton = insertButton;
         this.boundDialogKeydownHandler =
           this.onDialogKeydown.bind(this);
+        this.boundModalFocusHandler = this.keepFocusInDialog.bind(this);
       }
 
       this.activeComposeButton.disabled = true;
+      this.setLauncherModalState(true);
+      this.backdrop.style.display = 'block';
       this.dialog.style.visibility = 'hidden';
       this.dialog.style.display = 'flex';
       this.restoreDialogState()
@@ -725,9 +863,15 @@
         })
         .finally(() => {
           this.dialog.style.visibility = 'visible';
-          this.dialog.addEventListener(
+          window.addEventListener(
             'keydown',
             this.boundDialogKeydownHandler,
+            true,
+          );
+          document.addEventListener(
+            'focusin',
+            this.boundModalFocusHandler,
+            true,
           );
           this.textarea.focus();
           this.textarea.select();
@@ -747,7 +891,10 @@
 
       Object.assign(button.style, {
         position: 'fixed',
-        zIndex: '2147483647',
+        zIndex:
+          this.dialog?.style.display === 'flex'
+            ? MODAL_LAUNCHER_Z_INDEX
+            : LAUNCHER_Z_INDEX,
         width: '24px',
         height: '24px',
         padding: '0',
