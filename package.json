@@ -16,7 +16,7 @@
     "node": "^22"
   },
   "scripts": {
-    "check": "yarn lint && yarn lint:md && yarn format:check",
+    "check": "yarn test && yarn lint && yarn lint:md && yarn format:check",
     "check:fix": "yarn format && yarn lint --fix && yarn lint:md:fix",
     "lint:md": "markdownlint-cli2 \"**/*.md\" \"!node_modules/**\" \"!dist/**\"",
     "lint:md:fix": "markdownlint-cli2 \"**/*.md\" \"!node_modules/**\" \"!dist/**\" --fix",

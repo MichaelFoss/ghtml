@@ -25,7 +25,7 @@ Do not modify behavior outside the active task.
 
 - [x] Task 1 — Reorganize source files
 - [x] Task 2 — Install and configure Vitest
-- [ ] Task 3 — Add sanitizer unit tests
+- [x] Task 3 — Add sanitizer unit tests
 
 ---
 
