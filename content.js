@@ -285,10 +285,12 @@
             "⚡ Executing document.execCommand('insertHTML')...",
           );
 
+          const sanitizedHtml = globalThis.sanitizeHtml(html);
+
           const result = document.execCommand(
             'insertHTML',
             false,
-            html,
+            sanitizedHtml,
           );
 
           this.log(`📋 execCommand returned: ${result}`);
