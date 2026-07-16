@@ -232,6 +232,24 @@ confidently accepted is removed rather than preserved.
 
 ---
 
+## CSS policy
+
+CSS is untrusted input and is evaluated independently from the HTML
+element that contains it. Supporting an element does not imply support
+for its CSS.
+
+Inline CSS may be part of the supported HTML contract, but its support
+is defined by explicit architectural policy rather than browser
+behavior. Unsupported constructs are removed rather than preserved, and
+future CSS capabilities are not automatically accepted. CSS handling
+follows the same conservative, fail-closed philosophy used for HTML
+elements and URLs.
+
+Support for inline CSS does not imply support for `<style>` elements or
+any other CSS delivery mechanism.
+
+---
+
 ## Dialog architecture
 
 The dialog is implemented as a single reusable DOM element.
