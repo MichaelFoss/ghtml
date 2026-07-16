@@ -250,6 +250,22 @@ any other CSS delivery mechanism.
 
 ---
 
+## Gmail processing model
+
+User-supplied HTML is first interpreted into a DOM. GHTML sanitizes that
+parsed content before insertion and is responsible for the correctness
+and safety of everything it inserts.
+
+Gmail is an independent downstream processor and may normalize, modify,
+or remove markup after insertion. GHTML must not rely on that processing
+to enforce its security policy; it is defense in depth rather than the
+primary security boundary.
+
+GHTML's sanitizer must therefore remain correct even if Gmail's
+processing changes.
+
+---
+
 ## Dialog architecture
 
 The dialog is implemented as a single reusable DOM element.
