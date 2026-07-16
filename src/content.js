@@ -8,109 +8,11 @@
   const MIN_VISIBLE_TITLE_WIDTH = 48;
   const LAUNCHER_Z_INDEX = '2147483647';
   const MODAL_LAUNCHER_Z_INDEX = '2147483645';
-  const INDENT = '  ';
-
-  function getSelectedLineStarts(value, selectionStart, selectionEnd) {
-    const firstLineStart =
-      value.lastIndexOf('\n', selectionStart - 1) + 1;
-    const selectedLineStarts = [firstLineStart];
-    let nextLineStart = value.indexOf('\n', firstLineStart);
-
-    while (nextLineStart !== -1 && nextLineStart + 1 < selectionEnd) {
-      nextLineStart += 1;
-      selectedLineStarts.push(nextLineStart);
-      nextLineStart = value.indexOf('\n', nextLineStart);
-    }
-
-    return selectedLineStarts;
-  }
-
-  function indentSelection(value, selectionStart, selectionEnd) {
-    const lineStarts = getSelectedLineStarts(
-      value,
-      selectionStart,
-      selectionEnd,
-    );
-    let indentedValue = value;
-
-    for (const lineStart of lineStarts.toReversed()) {
-      indentedValue =
-        indentedValue.slice(0, lineStart) +
-        INDENT +
-        indentedValue.slice(lineStart);
-    }
-
-    return {
-      value: indentedValue,
-      selectionStart: selectionStart + INDENT.length,
-      selectionEnd: selectionEnd + INDENT.length * lineStarts.length,
-    };
-  }
-
-  function outdentSelection(value, selectionStart, selectionEnd) {
-    const removals = getSelectedLineStarts(
-      value,
-      selectionStart,
-      selectionEnd,
-    ).map((lineStart) => ({
-      lineStart,
-      length: Math.min(
-        INDENT.length,
-        value.slice(lineStart).match(/^ */)[0].length,
-      ),
-    }));
-    let outdentedValue = value;
-
-    for (const { lineStart, length } of removals.toReversed()) {
-      outdentedValue =
-        outdentedValue.slice(0, lineStart) +
-        outdentedValue.slice(lineStart + length);
-    }
-
-    const adjustPosition = (position) =>
-      position -
-      removals.reduce(
-        (removed, { lineStart, length }) =>
-          removed + Math.min(Math.max(position - lineStart, 0), length),
-        0,
-      );
-
-    return {
-      value: outdentedValue,
-      selectionStart: adjustPosition(selectionStart),
-      selectionEnd: adjustPosition(selectionEnd),
-    };
-  }
-
-  function insertAtSelection(
-    value,
-    selectionStart,
-    selectionEnd,
-    insertedText,
-  ) {
-    const caret = selectionStart + insertedText.length;
-
-    return {
-      value:
-        value.slice(0, selectionStart) +
-        insertedText +
-        value.slice(selectionEnd),
-      selectionStart: caret,
-      selectionEnd: caret,
-    };
-  }
-
-  function insertIndentedNewline(value, selectionStart, selectionEnd) {
-    const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
-    const indentation = value.slice(lineStart).match(/^[\t ]*/)[0];
-
-    return insertAtSelection(
-      value,
-      selectionStart,
-      selectionEnd,
-      `\n${indentation}`,
-    );
-  }
+  const {
+    constrainDialogPosition,
+    createDialogState,
+    getDialogKeyboardAction,
+  } = globalThis.GHTMLDialogHelpers;
 
   if (window.GHTML) {
     console.warn('[GHTML 🧪] ♻️ Reloading playground...');
@@ -432,10 +334,10 @@
     },
 
     saveDialogState() {
-      const dialogState = {
-        position: this.getDialogPosition(),
-        html: this.textarea.value,
-      };
+      const dialogState = createDialogState(
+        this.getDialogPosition(),
+        this.textarea.value,
+      );
 
       globalThis.chrome.storage.local.set({
         [DIALOG_STATE_KEY]: dialogState,
@@ -471,14 +373,15 @@
       const dialogRect = this.dialog.getBoundingClientRect();
       const titleRect =
         this.dialog.firstElementChild.getBoundingClientRect();
-      const minLeft = MIN_VISIBLE_TITLE_WIDTH - dialogRect.width;
-      const maxLeft = window.innerWidth - MIN_VISIBLE_TITLE_WIDTH;
-      const maxTop = window.innerHeight - titleRect.height;
-
-      return {
-        left: Math.min(Math.max(left, minLeft), maxLeft),
-        top: Math.min(Math.max(top, 0), maxTop),
-      };
+      return constrainDialogPosition(
+        left,
+        top,
+        dialogRect.width,
+        titleRect.height,
+        window.innerWidth,
+        window.innerHeight,
+        MIN_VISIBLE_TITLE_WIDTH,
+      );
     },
 
     onDialogDragStart(event) {
@@ -525,58 +428,33 @@
 
     onDialogKeydown(event) {
       event.stopPropagation();
-
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        this.cancelButton.click();
-        return;
-      }
-
-      if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-        event.preventDefault();
-        this.insertButton.click();
-        return;
-      }
-
-      if (event.target !== this.textarea && event.key === 'Tab') {
-        event.preventDefault();
-        this.moveDialogFocus(event.shiftKey);
-        return;
-      }
-
-      if (event.target !== this.textarea) {
-        return;
-      }
-
       const { value, selectionStart, selectionEnd } = this.textarea;
-      let edit;
+      const action = getDialogKeyboardAction({
+        key: event.key,
+        metaKey: event.metaKey,
+        ctrlKey: event.ctrlKey,
+        shiftKey: event.shiftKey,
+        isTextarea: event.target === this.textarea,
+        value,
+        selectionStart,
+        selectionEnd,
+      });
 
-      if (event.key === 'Enter') {
-        edit = insertIndentedNewline(
-          value,
-          selectionStart,
-          selectionEnd,
-        );
-      } else if (event.key === 'Tab' && event.shiftKey) {
-        edit = outdentSelection(value, selectionStart, selectionEnd);
-      } else if (
-        event.key === 'Tab' &&
-        value.slice(selectionStart, selectionEnd).includes('\n')
-      ) {
-        edit = indentSelection(value, selectionStart, selectionEnd);
-      } else if (event.key === 'Tab') {
-        edit = insertAtSelection(
-          value,
-          selectionStart,
-          selectionEnd,
-          INDENT,
-        );
-      } else {
+      if (!action) {
         return;
       }
 
       event.preventDefault();
-      this.applyTextareaEdit(edit);
+
+      if (action.type === 'cancel') {
+        this.cancelButton.click();
+      } else if (action.type === 'insert') {
+        this.insertButton.click();
+      } else if (action.type === 'moveFocus') {
+        this.moveDialogFocus(action.moveBackward);
+      } else {
+        this.applyTextareaEdit(action.edit);
+      }
     },
 
     moveDialogFocus(moveBackward) {

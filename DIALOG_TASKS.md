@@ -31,7 +31,7 @@ Do not modify behavior outside the active task.
 - [x] Task 5 — Make dialog modal
 - [x] Task 5.5 — Preserve compose ownership
 - [x] Task 5.6 — Delay launcher activation until Gmail UI is ready
-- [ ] Task 6 — Add dialog unit tests
+- [x] Task 6 — Add dialog unit tests
 
 ---
 
