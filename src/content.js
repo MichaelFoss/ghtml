@@ -2,6 +2,17 @@
   const MESSAGE_BODY_SELECTOR =
     '[g_editable="true"][role="textbox"][contenteditable="true"]';
   const COMPOSE_WINDOW_SELECTOR = '[role="dialog"]';
+  const GMAIL_MAIN_UI_SELECTOR = '[role="main"]';
+  const GMAIL_STARTUP_OVERLAY_SELECTOR = '#loading';
+  const DIALOG_STATE_KEY = 'dialogState';
+  const MIN_VISIBLE_TITLE_WIDTH = 48;
+  const LAUNCHER_Z_INDEX = '2147483647';
+  const MODAL_LAUNCHER_Z_INDEX = '2147483645';
+  const {
+    constrainDialogPosition,
+    createDialogState,
+    getDialogKeyboardAction,
+  } = globalThis.GHTMLDialogHelpers;
 
   if (window.GHTML) {
     console.warn('[GHTML 🧪] ♻️ Reloading playground...');
@@ -9,16 +20,23 @@
   }
 
   const GHTML = {
-    savedRange: null,
-
     activeComposeWindow: null,
     activeComposeButton: null,
     composeButtons: new Map(),
+    composeSelections: new Map(),
+    backdrop: null,
     dialog: null,
     textarea: null,
+    cancelButton: null,
+    insertButton: null,
 
     boundSelectionHandler: null,
     boundPositionHandler: null,
+    boundDialogKeydownHandler: null,
+    boundModalFocusHandler: null,
+    dragOffset: null,
+    gmailReadinessObserver: null,
+    gmailReadinessFrame: null,
     composeObserver: null,
     composeResizeObserver: null,
 
@@ -69,7 +87,7 @@
         true,
       );
 
-      this.observeComposeWindows();
+      this.waitForGmailReady();
     },
 
     destroy() {
@@ -86,13 +104,27 @@
       );
       this.composeObserver?.disconnect();
       this.composeResizeObserver?.disconnect();
+      this.gmailReadinessObserver?.disconnect();
+      cancelAnimationFrame(this.gmailReadinessFrame);
 
       for (const button of this.composeButtons.values()) {
         button.remove();
       }
 
       this.composeButtons.clear();
+      this.composeSelections.clear();
       this.clearActiveCompose();
+      window.removeEventListener(
+        'keydown',
+        this.boundDialogKeydownHandler,
+        true,
+      );
+      document.removeEventListener(
+        'focusin',
+        this.boundModalFocusHandler,
+        true,
+      );
+      this.backdrop?.remove();
       this.dialog?.remove();
 
       this.log('🧹 Playground destroyed.');
@@ -136,8 +168,49 @@
       );
     },
 
+    isElementVisible(element) {
+      const elementRect = element.getBoundingClientRect();
+
+      return (
+        element.checkVisibility({
+          opacityProperty: true,
+          visibilityProperty: true,
+        }) &&
+        elementRect.width > 0 &&
+        elementRect.height > 0
+      );
+    },
+
+    isGmailReady() {
+      const mainUiElements = document.querySelectorAll(
+        GMAIL_MAIN_UI_SELECTOR,
+      );
+      const startupOverlay = document.querySelector(
+        GMAIL_STARTUP_OVERLAY_SELECTOR,
+      );
+
+      return (
+        [...mainUiElements].some((element) =>
+          this.isElementVisible(element),
+        ) &&
+        (!startupOverlay || !this.isElementVisible(startupOverlay))
+      );
+    },
+
     onSelectionChange() {
-      if (!this.isMessageBody(document.activeElement)) {
+      if (this.activeComposeWindow) {
+        return;
+      }
+
+      const messageBody = this.findMessageBody(document.activeElement);
+
+      if (!(messageBody instanceof HTMLElement)) {
+        return;
+      }
+
+      const composeWindow = this.findComposeWindow(messageBody);
+
+      if (!(composeWindow instanceof HTMLElement)) {
         return;
       }
 
@@ -148,23 +221,26 @@
       }
 
       const range = selection.getRangeAt(0).cloneRange();
+      const savedRange = this.composeSelections.get(composeWindow);
 
       const changed =
-        !this.savedRange ||
-        range.startContainer !== this.savedRange.startContainer ||
-        range.startOffset !== this.savedRange.startOffset ||
-        range.endContainer !== this.savedRange.endContainer ||
-        range.endOffset !== this.savedRange.endOffset;
+        !savedRange ||
+        range.startContainer !== savedRange.startContainer ||
+        range.startOffset !== savedRange.startOffset ||
+        range.endContainer !== savedRange.endContainer ||
+        range.endOffset !== savedRange.endOffset;
 
-      this.savedRange = range;
+      this.composeSelections.set(composeWindow, range);
 
       if (changed) {
         this.log('💾 Selection saved.');
       }
     },
 
-    restoreSelection() {
-      if (!this.savedRange) {
+    restoreSelection(composeWindow) {
+      const savedRange = this.composeSelections.get(composeWindow);
+
+      if (!savedRange) {
         this.warn('⚠️ No saved Gmail selection.');
         return false;
       }
@@ -177,32 +253,32 @@
       }
 
       selection.removeAllRanges();
-      selection.addRange(this.savedRange);
+      selection.addRange(savedRange);
 
       return true;
     },
 
-    restoreEditor() {
-      if (!this.savedRange) {
-        this.warn('⚠️ No saved Gmail selection.');
-        return false;
-      }
-
-      const editorNode =
-        this.savedRange.startContainer.nodeType === Node.ELEMENT_NODE
-          ? this.savedRange.startContainer
-          : this.savedRange.startContainer.parentElement;
-
-      const editor = this.findMessageBody(editorNode);
+    restoreEditor(composeWindow = this.activeComposeWindow) {
+      const editor = composeWindow?.querySelector(
+        MESSAGE_BODY_SELECTOR,
+      );
 
       if (!(editor instanceof HTMLElement)) {
         this.warn('⚠️ Gmail message body could not be restored.');
         return false;
       }
 
+      if (!this.composeSelections.has(composeWindow)) {
+        const fallbackRange = document.createRange();
+
+        fallbackRange.selectNodeContents(editor);
+        fallbackRange.collapse(false);
+        this.composeSelections.set(composeWindow, fallbackRange);
+      }
+
       editor.focus();
 
-      if (!this.restoreSelection()) {
+      if (!this.restoreSelection(composeWindow)) {
         return false;
       }
 
@@ -217,67 +293,462 @@
       this.activeComposeButton = null;
     },
 
+    closeDialog() {
+      const composeWindow = this.activeComposeWindow;
+
+      this.saveDialogState();
+      window.removeEventListener(
+        'keydown',
+        this.boundDialogKeydownHandler,
+        true,
+      );
+      document.removeEventListener(
+        'focusin',
+        this.boundModalFocusHandler,
+        true,
+      );
+      this.dialog.style.display = 'none';
+      this.backdrop.style.display = 'none';
+      this.setLauncherModalState(false);
+      const editorRestored = this.restoreEditor(composeWindow);
+
+      this.clearActiveCompose();
+
+      return editorRestored;
+    },
+
+    setLauncherModalState(isModal) {
+      const zIndex = isModal
+        ? MODAL_LAUNCHER_Z_INDEX
+        : LAUNCHER_Z_INDEX;
+
+      for (const button of this.composeButtons.values()) {
+        button.style.zIndex = zIndex;
+      }
+    },
+
+    getDialogPosition() {
+      const { left, top } = this.dialog.getBoundingClientRect();
+
+      return { left, top };
+    },
+
+    saveDialogState() {
+      const dialogState = createDialogState(
+        this.getDialogPosition(),
+        this.textarea.value,
+      );
+
+      globalThis.chrome.storage.local.set({
+        [DIALOG_STATE_KEY]: dialogState,
+      });
+    },
+
+    restoreDialogState() {
+      return globalThis.chrome.storage.local
+        .get(DIALOG_STATE_KEY)
+        .then((result) => {
+          const dialogState = result[DIALOG_STATE_KEY];
+
+          if (!dialogState) {
+            return;
+          }
+
+          const { left, top } = this.constrainDialogPosition(
+            dialogState.position.left,
+            dialogState.position.top,
+          );
+
+          Object.assign(this.dialog.style, {
+            right: 'auto',
+            bottom: 'auto',
+            left: `${left}px`,
+            top: `${top}px`,
+          });
+          this.textarea.value = dialogState.html;
+        });
+    },
+
+    constrainDialogPosition(left, top) {
+      const dialogRect = this.dialog.getBoundingClientRect();
+      const titleRect =
+        this.dialog.firstElementChild.getBoundingClientRect();
+      return constrainDialogPosition(
+        left,
+        top,
+        dialogRect.width,
+        titleRect.height,
+        window.innerWidth,
+        window.innerHeight,
+        MIN_VISIBLE_TITLE_WIDTH,
+      );
+    },
+
+    onDialogDragStart(event) {
+      if (event.button !== 0) {
+        return;
+      }
+
+      const { left, top } = this.dialog.getBoundingClientRect();
+
+      this.dragOffset = {
+        x: event.clientX - left,
+        y: event.clientY - top,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    },
+
+    onDialogDrag(event) {
+      if (!this.dragOffset) {
+        return;
+      }
+
+      const { left, top } = this.constrainDialogPosition(
+        event.clientX - this.dragOffset.x,
+        event.clientY - this.dragOffset.y,
+      );
+
+      Object.assign(this.dialog.style, {
+        right: 'auto',
+        bottom: 'auto',
+        left: `${left}px`,
+        top: `${top}px`,
+      });
+    },
+
+    onDialogDragEnd() {
+      if (!this.dragOffset) {
+        return;
+      }
+
+      this.dragOffset = null;
+      this.saveDialogState();
+    },
+
+    onDialogKeydown(event) {
+      event.stopPropagation();
+      const { value, selectionStart, selectionEnd } = this.textarea;
+      const action = getDialogKeyboardAction({
+        key: event.key,
+        metaKey: event.metaKey,
+        ctrlKey: event.ctrlKey,
+        shiftKey: event.shiftKey,
+        isTextarea: event.target === this.textarea,
+        value,
+        selectionStart,
+        selectionEnd,
+      });
+
+      if (!action) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (action.type === 'cancel') {
+        this.cancelButton.click();
+      } else if (action.type === 'insert') {
+        this.insertButton.click();
+      } else if (action.type === 'moveFocus') {
+        this.moveDialogFocus(action.moveBackward);
+      } else {
+        this.applyTextareaEdit(action.edit);
+      }
+    },
+
+    moveDialogFocus(moveBackward) {
+      const controls = [
+        this.dialog.querySelector('[aria-label="Close"]'),
+        this.textarea,
+        this.cancelButton,
+        this.insertButton,
+      ];
+      const currentIndex = controls.indexOf(document.activeElement);
+      const offset = moveBackward ? -1 : 1;
+      const nextIndex =
+        (currentIndex + offset + controls.length) % controls.length;
+
+      controls[nextIndex].focus();
+    },
+
+    keepFocusInDialog(event) {
+      if (this.dialog.contains(event.target)) {
+        return;
+      }
+
+      this.textarea.focus();
+    },
+
+    addButtonInteractionStyles(button, styles) {
+      const applyRestingStyle = () => {
+        Object.assign(button.style, styles.resting);
+      };
+
+      button.addEventListener('mouseenter', () => {
+        Object.assign(button.style, styles.hover);
+      });
+      button.addEventListener('mouseleave', applyRestingStyle);
+      button.addEventListener('focus', () => {
+        if (button.matches(':focus-visible')) {
+          Object.assign(button.style, styles.focus);
+        }
+      });
+      button.addEventListener('blur', applyRestingStyle);
+    },
+
+    applyTextareaEdit(edit) {
+      this.textarea.value = edit.value;
+      this.textarea.setSelectionRange(
+        edit.selectionStart,
+        edit.selectionEnd,
+      );
+    },
+
     showDialog() {
       if (!this.dialog) {
+        const backdrop = document.createElement('div');
+        backdrop.className = 'ghtml-backdrop';
+        Object.assign(backdrop.style, {
+          position: 'fixed',
+          inset: '0',
+          display: 'none',
+          backgroundColor: 'rgba(32, 33, 36, 0.32)',
+          zIndex: '2147483646',
+        });
+
         const dialog = document.createElement('div');
+        dialog.className = 'ghtml-dialog';
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-modal', 'true');
 
         Object.assign(dialog.style, {
           position: 'fixed',
-          right: '20px',
-          bottom: '70px',
-          backgroundColor: 'white',
-          border: '1px solid #ccc',
-          padding: '10px',
+          right: '16px',
+          bottom: '64px',
+          display: 'none',
+          flexDirection: 'column',
+          width: 'min(600px, calc(100vw - 32px))',
+          height: 'min(420px, calc(100vh - 96px))',
+          minWidth: 'min(320px, calc(100vw - 32px))',
+          minHeight: 'min(240px, calc(100vh - 96px))',
+          maxWidth: 'calc(100vw - 32px)',
+          maxHeight: 'calc(100vh - 96px)',
+          boxSizing: 'border-box',
+          overflow: 'auto',
+          backgroundColor: '#fff',
+          border: '1px solid #dadce0',
+          borderRadius: '8px',
+          padding: '24px',
           zIndex: '2147483647',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-          maxWidth: 'fit-content',
+          boxShadow:
+            '0 8px 24px rgba(60, 64, 67, 0.24), 0 2px 6px rgba(60, 64, 67, 0.16)',
+          color: '#202124',
+          fontFamily: 'Roboto, Arial, sans-serif',
         });
 
+        const header = document.createElement('header');
+        Object.assign(header.style, {
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flex: '0 0 auto',
+          width: 'calc(100% + 48px)',
+          boxSizing: 'border-box',
+          margin: '-24px -24px 16px',
+          padding: '10px 12px 10px 16px',
+          backgroundColor: '#f2f6fc',
+          borderRadius: '7px 7px 0 0',
+          cursor: 'move',
+          userSelect: 'none',
+          touchAction: 'none',
+        });
+        header.addEventListener(
+          'pointerdown',
+          this.onDialogDragStart.bind(this),
+        );
+        header.addEventListener(
+          'pointermove',
+          this.onDialogDrag.bind(this),
+        );
+        header.addEventListener(
+          'pointerup',
+          this.onDialogDragEnd.bind(this),
+        );
+        header.addEventListener(
+          'pointercancel',
+          this.onDialogDragEnd.bind(this),
+        );
+
         const title = document.createElement('h3');
-        title.textContent = 'HTML';
-        dialog.appendChild(title);
+        title.id = 'ghtml-dialog-title';
+        title.textContent = 'Insert HTML';
+        dialog.setAttribute('aria-labelledby', title.id);
+        Object.assign(title.style, {
+          margin: '0',
+          fontSize: '16px',
+          fontWeight: '500',
+          lineHeight: '24px',
+        });
+        header.appendChild(title);
+
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.textContent = '×';
+        closeButton.setAttribute('aria-label', 'Close');
+        closeButton.title = 'Close';
+        Object.assign(closeButton.style, {
+          flex: '0 0 auto',
+          width: '28px',
+          height: '28px',
+          border: '0',
+          borderRadius: '4px',
+          padding: '0',
+          backgroundColor: 'transparent',
+          color: '#5f6368',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '24px',
+          fontWeight: '400',
+          lineHeight: '28px',
+          cursor: 'pointer',
+        });
+        closeButton.addEventListener('pointerdown', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        });
+        this.addButtonInteractionStyles(closeButton, {
+          resting: {
+            backgroundColor: 'transparent',
+            boxShadow: 'none',
+          },
+          hover: {
+            backgroundColor: '#e4e9f0',
+            boxShadow: 'none',
+          },
+          focus: {
+            backgroundColor: '#e8f0fe',
+            boxShadow: '0 0 0 2px #1a73e8',
+          },
+        });
+        header.appendChild(closeButton);
+        dialog.appendChild(header);
 
         const textarea = document.createElement('textarea');
         textarea.rows = 12;
         textarea.cols = 60;
         textarea.value = `<h2>Hello</h2>
 <p>This is <strong>bold</strong>, <em>italic</em>, and <a href="https://example.com">a link</a>.</p>`;
+        Object.assign(textarea.style, {
+          flex: '1 1 auto',
+          width: '100%',
+          minHeight: '100px',
+          boxSizing: 'border-box',
+          border: '1px solid #dadce0',
+          borderRadius: '4px',
+          padding: '12px',
+          backgroundColor: '#fff',
+          color: '#202124',
+          fontFamily: 'Roboto Mono, monospace',
+          fontSize: '13px',
+          lineHeight: '20px',
+          outlineColor: '#1a73e8',
+          resize: 'vertical',
+        });
         dialog.appendChild(textarea);
+        textarea.addEventListener('input', () => {
+          this.saveDialogState();
+        });
 
         const buttonsDiv = document.createElement('div');
-        buttonsDiv.style.marginTop = '8px';
+        Object.assign(buttonsDiv.style, {
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '8px',
+          marginTop: '20px',
+        });
 
         const cancelButton = document.createElement('button');
         cancelButton.textContent = 'Cancel';
+        Object.assign(cancelButton.style, {
+          minWidth: '72px',
+          height: '36px',
+          border: '1px solid #dadce0',
+          borderRadius: '4px',
+          padding: '0 16px',
+          backgroundColor: '#fff',
+          color: '#1a73e8',
+          fontFamily: 'Roboto, Arial, sans-serif',
+          fontSize: '14px',
+          fontWeight: '500',
+          cursor: 'pointer',
+        });
 
         cancelButton.addEventListener('mousedown', (event) => {
           event.preventDefault();
         });
+        this.addButtonInteractionStyles(cancelButton, {
+          resting: {
+            backgroundColor: '#fff',
+            boxShadow: 'none',
+          },
+          hover: {
+            backgroundColor: '#f8faff',
+            boxShadow: '0 1px 2px rgba(60, 64, 67, 0.2)',
+          },
+          focus: {
+            backgroundColor: '#fff',
+            boxShadow: '0 0 0 2px #aecbfa',
+          },
+        });
 
         cancelButton.addEventListener('click', () => {
-          this.dialog.style.display = 'none';
-          this.clearActiveCompose();
+          this.closeDialog();
+        });
 
-          this.restoreEditor();
+        closeButton.addEventListener('click', () => {
+          cancelButton.click();
         });
 
         buttonsDiv.appendChild(cancelButton);
 
         const insertButton = document.createElement('button');
         insertButton.textContent = 'Insert';
-        insertButton.style.marginLeft = '8px';
+        Object.assign(insertButton.style, {
+          minWidth: '72px',
+          height: '36px',
+          border: '1px solid #1a73e8',
+          borderRadius: '4px',
+          padding: '0 16px',
+          backgroundColor: '#1a73e8',
+          color: '#fff',
+          fontFamily: 'Roboto, Arial, sans-serif',
+          fontSize: '14px',
+          fontWeight: '500',
+          cursor: 'pointer',
+        });
 
         insertButton.addEventListener('mousedown', (event) => {
           event.preventDefault();
+        });
+        this.addButtonInteractionStyles(insertButton, {
+          resting: {
+            backgroundColor: '#1a73e8',
+            boxShadow: 'none',
+          },
+          hover: {
+            backgroundColor: '#1765cc',
+            boxShadow: '0 1px 2px rgba(60, 64, 67, 0.3)',
+          },
+          focus: {
+            backgroundColor: '#1a73e8',
+            boxShadow: '0 0 0 2px #aecbfa',
+          },
         });
 
         insertButton.addEventListener('click', () => {
           const html = this.textarea.value;
 
-          this.dialog.style.display = 'none';
-          this.clearActiveCompose();
-
-          if (!this.restoreSelection()) {
+          if (!this.closeDialog()) {
             return;
           }
 
@@ -299,16 +770,43 @@
 
         buttonsDiv.appendChild(insertButton);
         dialog.appendChild(buttonsDiv);
+        document.body.appendChild(backdrop);
         document.body.appendChild(dialog);
 
+        this.backdrop = backdrop;
         this.dialog = dialog;
         this.textarea = textarea;
+        this.cancelButton = cancelButton;
+        this.insertButton = insertButton;
+        this.boundDialogKeydownHandler =
+          this.onDialogKeydown.bind(this);
+        this.boundModalFocusHandler = this.keepFocusInDialog.bind(this);
       }
 
       this.activeComposeButton.disabled = true;
-      this.dialog.style.display = 'block';
-      this.textarea.focus();
-      this.textarea.select();
+      this.setLauncherModalState(true);
+      this.backdrop.style.display = 'block';
+      this.dialog.style.visibility = 'hidden';
+      this.dialog.style.display = 'flex';
+      this.restoreDialogState()
+        .catch((error) => {
+          this.error(error);
+        })
+        .finally(() => {
+          this.dialog.style.visibility = 'visible';
+          window.addEventListener(
+            'keydown',
+            this.boundDialogKeydownHandler,
+            true,
+          );
+          document.addEventListener(
+            'focusin',
+            this.boundModalFocusHandler,
+            true,
+          );
+          this.textarea.focus();
+          this.textarea.select();
+        });
     },
 
     createButton(label, clickHandler) {
@@ -324,7 +822,10 @@
 
       Object.assign(button.style, {
         position: 'fixed',
-        zIndex: '2147483647',
+        zIndex:
+          this.dialog?.style.display === 'flex'
+            ? MODAL_LAUNCHER_Z_INDEX
+            : LAUNCHER_Z_INDEX,
         width: '24px',
         height: '24px',
         padding: '0',
@@ -444,6 +945,7 @@
           button.remove();
           this.composeResizeObserver.unobserve(composeWindow);
           this.composeButtons.delete(composeWindow);
+          this.composeSelections.delete(composeWindow);
           this.log('🔴 Compose HTML button removed.');
         }
       }
@@ -474,6 +976,42 @@
       });
 
       this.syncComposeButtons();
+    },
+
+    waitForGmailReady() {
+      const initializeLaunchers = () => {
+        this.gmailReadinessFrame = null;
+
+        if (!this.isGmailReady()) {
+          return;
+        }
+
+        this.gmailReadinessObserver.disconnect();
+        this.gmailReadinessObserver = null;
+        this.observeComposeWindows();
+      };
+
+      const scheduleReadinessCheck = () => {
+        if (this.gmailReadinessFrame !== null) {
+          return;
+        }
+
+        this.gmailReadinessFrame = requestAnimationFrame(
+          initializeLaunchers,
+        );
+      };
+
+      this.gmailReadinessObserver = new MutationObserver(
+        scheduleReadinessCheck,
+      );
+      this.gmailReadinessObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'hidden', 'style'],
+        childList: true,
+        subtree: true,
+      });
+
+      scheduleReadinessCheck();
     },
   };
 

@@ -2,11 +2,16 @@
   "manifest_version": 3,
   "name": "GHTML",
   "version": "0.0.1",
+  "permissions": ["storage"],
   "host_permissions": ["https://mail.google.com/*"],
   "content_scripts": [
     {
       "matches": ["https://mail.google.com/*"],
-      "js": ["src/sanitizer.js", "src/content.js"],
+      "js": [
+        "src/sanitizer.js",
+        "src/dialog-helpers.js",
+        "src/content.js"
+      ],
       "run_at": "document_idle"
     }
   ]
