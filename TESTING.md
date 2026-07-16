@@ -29,15 +29,15 @@ Verify the following before beginning:
 
 2. Type:
 
-    ```text
-    asdf
-    ```
+   ```text
+   asdf
+   ```
 
 3. Place the caret:
 
-    ```text
-    as|df
-    ```
+   ```text
+   as|df
+   ```
 
 4. Click **HTML**.
 
@@ -53,15 +53,15 @@ Verify the following before beginning:
 
 1. Type:
 
-    ```text
-    abcdef
-    ```
+   ```text
+   abcdef
+   ```
 
 2. Select:
 
-    ```text
-    ab[cde]f
-    ```
+   ```text
+   ab[cde]f
+   ```
 
 3. Click **HTML**.
 
@@ -81,9 +81,9 @@ Verify the following before beginning:
 
 1. Place the caret:
 
-    ```text
-    as|df
-    ```
+   ```text
+   as|df
+   ```
 
 2. Insert sample HTML.
 
@@ -97,9 +97,9 @@ as<inserted HTML>df
 
 1. Select:
 
-    ```text
-    ab[cde]f
-    ```
+   ```text
+   ab[cde]f
+   ```
 
 2. Insert sample HTML.
 
@@ -108,6 +108,103 @@ as<inserted HTML>df
 ```text
 ab<inserted HTML>f
 ```
+
+---
+
+## HTML Sanitization
+
+### Safe HTML
+
+1. Insert:
+
+   ```html
+   <strong>Bold</strong>
+   <em>Italic</em>
+   <span style="color:red">Red</span>
+   ```
+
+**Expected:**
+
+- Formatting is preserved.
+- No content is removed.
+
+### Remove script tags
+
+1. Insert:
+
+   ```html
+   <script>
+     alert('hello');
+   </script>
+   <strong>Visible</strong>
+   ```
+
+**Expected:**
+
+- `<script>` is removed.
+- "Visible" remains.
+
+### Remove event handlers
+
+1. Insert:
+
+   ```html
+   <div onclick="alert('hi')">Click me</div>
+   ```
+
+**Expected:**
+
+- `onclick` is removed.
+- The element is still inserted.
+
+### Remove javascript: URLs
+
+1. Insert:
+
+   ```html
+   <a href="javascript:alert('hi')"> Test </a>
+   ```
+
+**Expected:**
+
+- The dangerous URL is removed.
+- The link text remains.
+
+### Preserve inline styles
+
+1. Insert:
+
+   ```html
+   <span style="color:red;font-weight:bold"> Styled </span>
+   ```
+
+**Expected:**
+
+- Inline styles are preserved.
+
+### Preserve classes
+
+1. Insert:
+
+   ```html
+   <div class="example">Test</div>
+   ```
+
+**Expected:**
+
+- Class attribute is preserved.
+
+### Preserve data attributes
+
+1. Insert:
+
+   ```html
+   <div data-id="123">Test</div>
+   ```
+
+**Expected:**
+
+- `data-id` remains.
 
 ---
 
@@ -137,6 +234,9 @@ ab<inserted HTML>f
 
 ### Cancel
 
+1. Click **HTML**.
+2. Click **Cancel**.
+
 **Expected:**
 
 - Dialog closes.
@@ -144,6 +244,10 @@ ab<inserted HTML>f
 - Editor regains focus.
 
 ### Insert
+
+1. Click **HTML**.
+2. Enter HTML.
+3. Click **Insert**.
 
 **Expected:**
 
@@ -182,21 +286,85 @@ ab<inserted HTML>f
 
 ---
 
-## Positioning
+## Launcher
+
+### New compose
+
+1. Open a new compose window.
+
+**Expected:**
+
+- Exactly one launcher appears.
+
+### Multiple compose windows
+
+1. Open multiple compose windows.
+
+**Expected:**
+
+- Each compose window owns exactly one launcher.
+
+### Minimize
+
+1. Minimize a compose window.
+
+**Expected:**
+
+- Launcher follows the minimized compose window.
+
+### Restore
+
+1. Restore a minimized compose window.
+
+**Expected:**
+
+- Launcher returns to the restored compose window.
+
+### Maximize
+
+1. Maximize a compose window.
+
+**Expected:**
+
+- Launcher remains correctly positioned.
+
+### Restore from maximize
+
+1. Restore a maximized compose window.
+
+**Expected:**
+
+- Launcher remains correctly positioned.
 
 ### Browser resize
 
+1. Open a compose window.
+2. Resize the browser window.
+
 **Expected:**
 
-- Buttons remain attached to their compose windows.
+- Launcher remains visible.
+- Launcher stays attached to the same compose window.
+- Launcher repositions correctly.
 
 ### Browser scroll
 
+1. Open a compose window.
+2. Scroll the page.
+
 **Expected:**
 
-- Buttons reposition correctly.
+- Launcher remains visible.
+- Launcher stays attached to the same compose window.
+- Launcher repositions correctly.
 
----
+### Close compose
+
+1. Close a compose window.
+
+**Expected:**
+
+- Launcher is removed.
 
 ## Extension Reload
 
@@ -216,7 +384,7 @@ ab<inserted HTML>f
 **Expected:**
 
 - No uncaught exceptions.
-- No warnings related to GHTML.
+- No unexpected warnings.
 - No stack traces.
 
 ---
@@ -228,11 +396,5 @@ Run every test in this document.
 **Expected:**
 
 - All tests pass without behavioral regressions.
-
----
-
-## Test History
-
-Version Date Tester Result
 
 ---
