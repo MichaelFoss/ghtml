@@ -216,6 +216,22 @@ support.
 
 ---
 
+## URL policy
+
+Every URL-bearing attribute is untrusted input. Its value is evaluated
+independently from the element that contains it, so accepting an element
+does not imply accepting any URL associated with that element.
+
+URL support is defined by an explicit allowlist and architectural
+policy, not by browser behavior. Unsupported, malformed, unknown, and
+future URL schemes are rejected rather than automatically accepted.
+Browser parsing does not determine the sanitizer's security policy.
+
+URL handling intentionally fails closed. Any URL that cannot be
+confidently accepted is removed rather than preserved.
+
+---
+
 ## Dialog architecture
 
 The dialog is implemented as a single reusable DOM element.
