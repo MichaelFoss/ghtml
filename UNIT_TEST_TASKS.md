@@ -23,7 +23,7 @@ Do not modify behavior outside the active task.
 
 ## Task Status
 
-- [ ] Task 1 — Reorganize source files
+- [x] Task 1 — Reorganize source files
 - [ ] Task 2 — Install and configure Vitest
 - [ ] Task 3 — Add sanitizer unit tests
 
