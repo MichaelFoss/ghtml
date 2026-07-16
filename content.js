@@ -20,6 +20,7 @@
     boundSelectionHandler: null,
     boundPositionHandler: null,
     composeObserver: null,
+    composeResizeObserver: null,
 
     log(...args) {
       console.log(`[GHTML 🧪] ${args.join(' ')}`);
@@ -84,6 +85,7 @@
         true,
       );
       this.composeObserver?.disconnect();
+      this.composeResizeObserver?.disconnect();
 
       for (const button of this.composeButtons.values()) {
         button.remove();
@@ -315,13 +317,38 @@
       });
 
       button.textContent = label;
+      button.setAttribute('aria-label', 'Insert HTML');
+      button.title = 'Insert HTML';
 
       Object.assign(button.style, {
         position: 'fixed',
         zIndex: '2147483647',
-        padding: '10px 16px',
-        fontSize: '14px',
+        width: '24px',
+        height: '24px',
+        padding: '0',
+        border: '1px solid #dadce0',
+        borderRadius: '4px',
+        backgroundColor: '#f1f3f4',
+        color: '#5f6368',
+        fontFamily: 'Roboto, Arial, sans-serif',
+        fontSize: '11px',
+        fontWeight: '500',
+        lineHeight: '22px',
+        textAlign: 'center',
+        opacity: '1',
         cursor: 'pointer',
+        transition:
+          'background-color 120ms ease, box-shadow 120ms ease',
+      });
+
+      button.addEventListener('mouseenter', () => {
+        button.style.backgroundColor = '#e8eaed';
+        button.style.boxShadow = '0 1px 2px rgba(60, 64, 67, 0.3)';
+      });
+
+      button.addEventListener('mouseleave', () => {
+        button.style.backgroundColor = '#f1f3f4';
+        button.style.boxShadow = 'none';
       });
 
       button.addEventListener('click', () => {
@@ -358,9 +385,11 @@
 
     getComposeButtonPosition(composeWindow) {
       const composeRect = composeWindow.getBoundingClientRect();
-      const spacing = 8;
-      const left = Math.max(spacing, composeRect.left + spacing);
-      const top = Math.max(spacing, composeRect.top + spacing);
+      const topPadding = 8;
+      const rightControlReserve = 96;
+      const buttonSize = 24;
+      const left = composeRect.right - rightControlReserve - buttonSize;
+      const top = composeRect.top + topPadding;
 
       return { left, top };
     },
@@ -387,7 +416,7 @@
     },
 
     createComposeButton(composeWindow) {
-      const button = this.createButton('HTML', () => {
+      const button = this.createButton('</>', () => {
         this.activeComposeWindow = composeWindow;
         this.activeComposeButton = button;
         this.showDialog();
@@ -404,12 +433,14 @@
       for (const composeWindow of composeWindows) {
         if (!this.composeButtons.has(composeWindow)) {
           this.createComposeButton(composeWindow);
+          this.composeResizeObserver.observe(composeWindow);
         }
       }
 
       for (const [composeWindow, button] of this.composeButtons) {
         if (!composeWindows.has(composeWindow)) {
           button.remove();
+          this.composeResizeObserver.unobserve(composeWindow);
           this.composeButtons.delete(composeWindow);
           this.log('🔴 Compose HTML button removed.');
         }
@@ -419,6 +450,10 @@
     },
 
     observeComposeWindows() {
+      this.composeResizeObserver = new ResizeObserver(() => {
+        this.positionComposeButtons();
+      });
+
       this.composeObserver = new MutationObserver((mutations) => {
         const buttons = new Set(this.composeButtons.values());
 
