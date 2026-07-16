@@ -30,7 +30,7 @@ Do not modify behavior outside the active task.
 - [x] Task 4.5 - Polish dialog chrome
 - [x] Task 5 — Make dialog modal
 - [x] Task 5.5 — Preserve compose ownership
-- [ ] Task 5.6 — Delay launcher activation until Gmail UI is ready
+- [x] Task 5.6 — Delay launcher activation until Gmail UI is ready
 - [ ] Task 6 — Add dialog unit tests
 
 ---

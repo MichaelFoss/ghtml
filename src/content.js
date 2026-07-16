@@ -2,6 +2,8 @@
   const MESSAGE_BODY_SELECTOR =
     '[g_editable="true"][role="textbox"][contenteditable="true"]';
   const COMPOSE_WINDOW_SELECTOR = '[role="dialog"]';
+  const GMAIL_MAIN_UI_SELECTOR = '[role="main"]';
+  const GMAIL_STARTUP_OVERLAY_SELECTOR = '#loading';
   const DIALOG_STATE_KEY = 'dialogState';
   const MIN_VISIBLE_TITLE_WIDTH = 48;
   const LAUNCHER_Z_INDEX = '2147483647';
@@ -131,6 +133,8 @@
     boundDialogKeydownHandler: null,
     boundModalFocusHandler: null,
     dragOffset: null,
+    gmailReadinessObserver: null,
+    gmailReadinessFrame: null,
     composeObserver: null,
     composeResizeObserver: null,
 
@@ -181,7 +185,7 @@
         true,
       );
 
-      this.observeComposeWindows();
+      this.waitForGmailReady();
     },
 
     destroy() {
@@ -198,6 +202,8 @@
       );
       this.composeObserver?.disconnect();
       this.composeResizeObserver?.disconnect();
+      this.gmailReadinessObserver?.disconnect();
+      cancelAnimationFrame(this.gmailReadinessFrame);
 
       for (const button of this.composeButtons.values()) {
         button.remove();
@@ -257,6 +263,35 @@
         messageRect.left >= composeRect.right ||
         messageRect.bottom <= composeRect.top ||
         messageRect.top >= composeRect.bottom
+      );
+    },
+
+    isElementVisible(element) {
+      const elementRect = element.getBoundingClientRect();
+
+      return (
+        element.checkVisibility({
+          opacityProperty: true,
+          visibilityProperty: true,
+        }) &&
+        elementRect.width > 0 &&
+        elementRect.height > 0
+      );
+    },
+
+    isGmailReady() {
+      const mainUiElements = document.querySelectorAll(
+        GMAIL_MAIN_UI_SELECTOR,
+      );
+      const startupOverlay = document.querySelector(
+        GMAIL_STARTUP_OVERLAY_SELECTOR,
+      );
+
+      return (
+        [...mainUiElements].some((element) =>
+          this.isElementVisible(element),
+        ) &&
+        (!startupOverlay || !this.isElementVisible(startupOverlay))
       );
     },
 
@@ -1063,6 +1098,42 @@
       });
 
       this.syncComposeButtons();
+    },
+
+    waitForGmailReady() {
+      const initializeLaunchers = () => {
+        this.gmailReadinessFrame = null;
+
+        if (!this.isGmailReady()) {
+          return;
+        }
+
+        this.gmailReadinessObserver.disconnect();
+        this.gmailReadinessObserver = null;
+        this.observeComposeWindows();
+      };
+
+      const scheduleReadinessCheck = () => {
+        if (this.gmailReadinessFrame !== null) {
+          return;
+        }
+
+        this.gmailReadinessFrame = requestAnimationFrame(
+          initializeLaunchers,
+        );
+      };
+
+      this.gmailReadinessObserver = new MutationObserver(
+        scheduleReadinessCheck,
+      );
+      this.gmailReadinessObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'hidden', 'style'],
+        childList: true,
+        subtree: true,
+      });
+
+      scheduleReadinessCheck();
     },
   };
 
