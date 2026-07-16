@@ -1,6 +1,6 @@
 # GHTML
 
-GHTML is a Chrome extension that inserts arbitrary HTML into Gmail
+GHTML is a Chrome extension that inserts user-supplied HTML into Gmail
 compose windows while preserving Gmail's native editing behavior.
 
 The primary goal is to make it possible to paste or generate rich HTML
@@ -18,39 +18,22 @@ step** and **no runtime dependencies**.
 
 ---
 
-## Status
-
-🚧 Prototype
-
-Current milestone:
-
-- Compose window integration
-
-Core HTML insertion has been proven.
-
-Current work is focused on integrating with Gmail compose windows while
-preserving native Gmail behavior.
-
----
-
 ## Features
 
-Current prototype:
+Current capabilities:
 
-- Insert arbitrary HTML into Gmail compose windows
-- Preserve Gmail undo/redo behavior
-- Preserve Gmail selection behavior
-- Custom HTML dialog
-- One floating HTML button per compose window
+- Insert supported HTML into Gmail compose windows
+- Preserve Gmail's native undo/redo behavior
+- Preserve Gmail's native selection and cursor behavior
+- Replace the current selection or insert at the caret
+- One floating launcher per compose window
 - Multiple simultaneous compose windows
-- Zero dependencies
-
-Planned:
-
-- Gmail toolbar integration
-- HTML sanitization
-- Improved dialog
-- Chrome Web Store release
+- Keyboard shortcuts for inserting and dismissing the dialog
+- Draggable dialog with persisted position
+- Persisted dialog contents across Gmail reloads
+- HTML sanitization before insertion
+- Gmail startup synchronization
+- Zero runtime dependencies
 
 ---
 
@@ -107,12 +90,19 @@ No build step is required.
 ├── .prettierrc.json
 ├── .vscode/
 ├── AGENTS.md
+├── ARCHITECTURE.md
 ├── LICENSE
 ├── README.md
+├── ROADMAP.md
+├── TESTING.md
 ├── eslint.config.js
 ├── manifest.json
 ├── package.json
-├── content.js
+├── src/
+│   ├── content.js
+│   ├── dialog-helpers.js
+│   └── sanitizer.js
+├── test/
 ├── icons/
 └── yarn.lock
 ```
@@ -121,11 +111,19 @@ No build step is required.
 
 ## Design principles
 
-- Preserve Gmail behavior.
-- Prefer browser APIs.
-- Prototype before refactoring.
-- Keep dependencies at zero.
-- Make small, reviewable commits.
+- Preserve Gmail's native behavior.
+- Prefer browser APIs over additional dependencies.
+- Keep browser- and Gmail-specific behavior in `content.js`.
+- Extract only pure, testable logic into helper modules.
+- Keep runtime dependencies at zero.
+- Make small, reviewable, easily reversible commits.
+
+---
+
+## Project roadmap
+
+Project milestones and future plans are documented in
+[ROADMAP.md](ROADMAP.md).
 
 ---
 
