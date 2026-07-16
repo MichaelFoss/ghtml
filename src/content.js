@@ -523,34 +523,75 @@
           fontFamily: 'Roboto, Arial, sans-serif',
         });
 
-        const title = document.createElement('h3');
-        title.textContent = 'HTML';
-        Object.assign(title.style, {
-          margin: '0 0 16px',
-          fontSize: '20px',
-          fontWeight: '500',
-          lineHeight: '28px',
+        const header = document.createElement('header');
+        Object.assign(header.style, {
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flex: '0 0 auto',
+          width: 'calc(100% + 48px)',
+          boxSizing: 'border-box',
+          margin: '-24px -24px 16px',
+          padding: '10px 12px 10px 16px',
+          backgroundColor: '#f2f6fc',
+          borderRadius: '7px 7px 0 0',
           cursor: 'move',
           userSelect: 'none',
           touchAction: 'none',
         });
-        title.addEventListener(
+        header.addEventListener(
           'pointerdown',
           this.onDialogDragStart.bind(this),
         );
-        title.addEventListener(
+        header.addEventListener(
           'pointermove',
           this.onDialogDrag.bind(this),
         );
-        title.addEventListener(
+        header.addEventListener(
           'pointerup',
           this.onDialogDragEnd.bind(this),
         );
-        title.addEventListener(
+        header.addEventListener(
           'pointercancel',
           this.onDialogDragEnd.bind(this),
         );
-        dialog.appendChild(title);
+
+        const title = document.createElement('h3');
+        title.textContent = 'Insert HTML';
+        Object.assign(title.style, {
+          margin: '0',
+          fontSize: '16px',
+          fontWeight: '500',
+          lineHeight: '24px',
+        });
+        header.appendChild(title);
+
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.textContent = '×';
+        closeButton.setAttribute('aria-label', 'Close');
+        closeButton.title = 'Close';
+        Object.assign(closeButton.style, {
+          flex: '0 0 auto',
+          width: '28px',
+          height: '28px',
+          border: '0',
+          borderRadius: '4px',
+          padding: '0',
+          backgroundColor: 'transparent',
+          color: '#5f6368',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '24px',
+          fontWeight: '400',
+          lineHeight: '28px',
+          cursor: 'pointer',
+        });
+        closeButton.addEventListener('pointerdown', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        });
+        header.appendChild(closeButton);
+        dialog.appendChild(header);
 
         const textarea = document.createElement('textarea');
         textarea.rows = 12;
@@ -610,6 +651,10 @@
           this.closeDialog();
 
           this.restoreEditor();
+        });
+
+        closeButton.addEventListener('click', () => {
+          cancelButton.click();
         });
 
         buttonsDiv.appendChild(cancelButton);
