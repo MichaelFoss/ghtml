@@ -116,11 +116,10 @@
   }
 
   const GHTML = {
-    savedRange: null,
-
     activeComposeWindow: null,
     activeComposeButton: null,
     composeButtons: new Map(),
+    composeSelections: new Map(),
     backdrop: null,
     dialog: null,
     textarea: null,
@@ -205,6 +204,7 @@
       }
 
       this.composeButtons.clear();
+      this.composeSelections.clear();
       this.clearActiveCompose();
       window.removeEventListener(
         'keydown',
@@ -261,7 +261,19 @@
     },
 
     onSelectionChange() {
-      if (!this.isMessageBody(document.activeElement)) {
+      if (this.activeComposeWindow) {
+        return;
+      }
+
+      const messageBody = this.findMessageBody(document.activeElement);
+
+      if (!(messageBody instanceof HTMLElement)) {
+        return;
+      }
+
+      const composeWindow = this.findComposeWindow(messageBody);
+
+      if (!(composeWindow instanceof HTMLElement)) {
         return;
       }
 
@@ -272,23 +284,26 @@
       }
 
       const range = selection.getRangeAt(0).cloneRange();
+      const savedRange = this.composeSelections.get(composeWindow);
 
       const changed =
-        !this.savedRange ||
-        range.startContainer !== this.savedRange.startContainer ||
-        range.startOffset !== this.savedRange.startOffset ||
-        range.endContainer !== this.savedRange.endContainer ||
-        range.endOffset !== this.savedRange.endOffset;
+        !savedRange ||
+        range.startContainer !== savedRange.startContainer ||
+        range.startOffset !== savedRange.startOffset ||
+        range.endContainer !== savedRange.endContainer ||
+        range.endOffset !== savedRange.endOffset;
 
-      this.savedRange = range;
+      this.composeSelections.set(composeWindow, range);
 
       if (changed) {
         this.log('💾 Selection saved.');
       }
     },
 
-    restoreSelection() {
-      if (!this.savedRange) {
+    restoreSelection(composeWindow) {
+      const savedRange = this.composeSelections.get(composeWindow);
+
+      if (!savedRange) {
         this.warn('⚠️ No saved Gmail selection.');
         return false;
       }
@@ -301,32 +316,32 @@
       }
 
       selection.removeAllRanges();
-      selection.addRange(this.savedRange);
+      selection.addRange(savedRange);
 
       return true;
     },
 
-    restoreEditor() {
-      if (!this.savedRange) {
-        this.warn('⚠️ No saved Gmail selection.');
-        return false;
-      }
-
-      const editorNode =
-        this.savedRange.startContainer.nodeType === Node.ELEMENT_NODE
-          ? this.savedRange.startContainer
-          : this.savedRange.startContainer.parentElement;
-
-      const editor = this.findMessageBody(editorNode);
+    restoreEditor(composeWindow = this.activeComposeWindow) {
+      const editor = composeWindow?.querySelector(
+        MESSAGE_BODY_SELECTOR,
+      );
 
       if (!(editor instanceof HTMLElement)) {
         this.warn('⚠️ Gmail message body could not be restored.');
         return false;
       }
 
+      if (!this.composeSelections.has(composeWindow)) {
+        const fallbackRange = document.createRange();
+
+        fallbackRange.selectNodeContents(editor);
+        fallbackRange.collapse(false);
+        this.composeSelections.set(composeWindow, fallbackRange);
+      }
+
       editor.focus();
 
-      if (!this.restoreSelection()) {
+      if (!this.restoreSelection(composeWindow)) {
         return false;
       }
 
@@ -342,6 +357,8 @@
     },
 
     closeDialog() {
+      const composeWindow = this.activeComposeWindow;
+
       this.saveDialogState();
       window.removeEventListener(
         'keydown',
@@ -356,8 +373,11 @@
       this.dialog.style.display = 'none';
       this.backdrop.style.display = 'none';
       this.setLauncherModalState(false);
+      const editorRestored = this.restoreEditor(composeWindow);
+
       this.clearActiveCompose();
-      this.restoreEditor();
+
+      return editorRestored;
     },
 
     setLauncherModalState(isModal) {
@@ -815,9 +835,7 @@
         insertButton.addEventListener('click', () => {
           const html = this.textarea.value;
 
-          this.closeDialog();
-
-          if (!this.restoreSelection()) {
+          if (!this.closeDialog()) {
             return;
           }
 
@@ -1014,6 +1032,7 @@
           button.remove();
           this.composeResizeObserver.unobserve(composeWindow);
           this.composeButtons.delete(composeWindow);
+          this.composeSelections.delete(composeWindow);
           this.log('🔴 Compose HTML button removed.');
         }
       }
