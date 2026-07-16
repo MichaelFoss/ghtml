@@ -11,6 +11,8 @@ refactoring that should preserve behavior.
 
 ## Test Environment
 
+### ENV-001 Verify test environment
+
 Verify the following before beginning:
 
 - Chrome (latest stable)
@@ -23,7 +25,7 @@ Verify the following before beginning:
 
 ## Selection
 
-### Caret restoration
+### SEL-001 Caret restoration
 
 1. Open a new compose window.
 
@@ -49,7 +51,7 @@ Verify the following before beginning:
 - Gmail editor regains focus.
 - Caret returns to the original position.
 
-### Selection restoration
+### SEL-002 Selection restoration
 
 1. Type:
 
@@ -77,7 +79,7 @@ Verify the following before beginning:
 
 ## HTML Insertion
 
-### Insert at caret
+### INS-001 Insert at caret
 
 1. Place the caret:
 
@@ -93,7 +95,7 @@ Verify the following before beginning:
 as<inserted HTML>df
 ```
 
-### Replace selection
+### INS-002 Replace selection
 
 1. Select:
 
@@ -113,7 +115,7 @@ ab<inserted HTML>f
 
 ## HTML Sanitization
 
-### Safe HTML
+### SAN-001 Safe HTML
 
 1. Insert:
 
@@ -128,7 +130,7 @@ ab<inserted HTML>f
 - Formatting is preserved.
 - No content is removed.
 
-### Remove script tags
+### SAN-002 Remove script tags
 
 1. Insert:
 
@@ -144,7 +146,7 @@ ab<inserted HTML>f
 - `<script>` is removed.
 - "Visible" remains.
 
-### Remove event handlers
+### SAN-003 Remove event handlers
 
 1. Insert:
 
@@ -157,7 +159,7 @@ ab<inserted HTML>f
 - `onclick` is removed.
 - The element is still inserted.
 
-### Remove javascript: URLs
+### SAN-004 Remove javascript: URLs
 
 1. Insert:
 
@@ -170,7 +172,7 @@ ab<inserted HTML>f
 - The dangerous URL is removed.
 - The link text remains.
 
-### Preserve inline styles
+### SAN-005 Preserve inline styles
 
 1. Insert:
 
@@ -182,7 +184,7 @@ ab<inserted HTML>f
 
 - Inline styles are preserved.
 
-### Preserve classes
+### SAN-006 Preserve classes
 
 1. Insert:
 
@@ -194,7 +196,7 @@ ab<inserted HTML>f
 
 - Class attribute is preserved.
 
-### Preserve data attributes
+### SAN-007 Preserve data attributes
 
 1. Insert:
 
@@ -210,7 +212,7 @@ ab<inserted HTML>f
 
 ## Undo / Redo
 
-### Undo
+### UND-001 Undo
 
 1. Insert HTML.
 2. Press **Cmd/Ctrl+Z**.
@@ -220,7 +222,7 @@ ab<inserted HTML>f
 - Entire insertion is removed.
 - Caret or selection returns to its original location.
 
-### Redo
+### UND-002 Redo
 
 1. Immediately press **Shift+Cmd/Ctrl+Z**.
 
@@ -232,7 +234,7 @@ ab<inserted HTML>f
 
 ## Dialog
 
-### Cancel
+### DLG-001 Cancel
 
 1. Click **HTML**.
 2. Click **Cancel**.
@@ -243,7 +245,7 @@ ab<inserted HTML>f
 - HTML button is re-enabled.
 - Editor regains focus.
 
-### Insert
+### DLG-002 Insert
 
 1. Click **HTML**.
 2. Enter HTML.
@@ -258,6 +260,8 @@ ab<inserted HTML>f
 ---
 
 ## Multiple Compose Windows
+
+### CMP-001 Independent compose windows
 
 1. Open two compose windows.
 
@@ -288,7 +292,7 @@ ab<inserted HTML>f
 
 ## Launcher
 
-### New compose
+### LCH-001 New compose
 
 1. Open a new compose window.
 
@@ -296,7 +300,7 @@ ab<inserted HTML>f
 
 - Exactly one launcher appears.
 
-### Multiple compose windows
+### LCH-002 Multiple compose windows
 
 1. Open multiple compose windows.
 
@@ -304,7 +308,7 @@ ab<inserted HTML>f
 
 - Each compose window owns exactly one launcher.
 
-### Minimize
+### LCH-003 Minimize
 
 1. Minimize a compose window.
 
@@ -312,7 +316,7 @@ ab<inserted HTML>f
 
 - Launcher follows the minimized compose window.
 
-### Restore
+### LCH-004 Restore
 
 1. Restore a minimized compose window.
 
@@ -320,7 +324,7 @@ ab<inserted HTML>f
 
 - Launcher returns to the restored compose window.
 
-### Maximize
+### LCH-005 Maximize
 
 1. Maximize a compose window.
 
@@ -328,7 +332,7 @@ ab<inserted HTML>f
 
 - Launcher remains correctly positioned.
 
-### Restore from maximize
+### LCH-006 Restore from maximize
 
 1. Restore a maximized compose window.
 
@@ -336,7 +340,7 @@ ab<inserted HTML>f
 
 - Launcher remains correctly positioned.
 
-### Browser resize
+### LCH-007 Browser resize
 
 1. Open a compose window.
 2. Resize the browser window.
@@ -347,7 +351,7 @@ ab<inserted HTML>f
 - Launcher stays attached to the same compose window.
 - Launcher repositions correctly.
 
-### Browser scroll
+### LCH-008 Browser scroll
 
 1. Open a compose window.
 2. Scroll the page.
@@ -358,7 +362,7 @@ ab<inserted HTML>f
 - Launcher stays attached to the same compose window.
 - Launcher repositions correctly.
 
-### Close compose
+### LCH-009 Close compose
 
 1. Close a compose window.
 
@@ -367,6 +371,8 @@ ab<inserted HTML>f
 - Launcher is removed.
 
 ## Extension Reload
+
+### EXT-001 Reload extension
 
 1. Reload the extension.
 2. Refresh Gmail.
@@ -381,6 +387,8 @@ ab<inserted HTML>f
 
 ## Console
 
+### CON-001 Console output
+
 **Expected:**
 
 - No uncaught exceptions.
@@ -390,6 +398,8 @@ ab<inserted HTML>f
 ---
 
 ## Regression
+
+### REG-001 Full regression suite
 
 Run every test in this document.
 
