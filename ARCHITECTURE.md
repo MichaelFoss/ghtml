@@ -196,6 +196,26 @@ to repairing arbitrary input.
 
 ---
 
+## Supported HTML contract
+
+Supported HTML is defined by an explicit allowlist, not inferred from
+browser capabilities or inherited from a denylist of known risks.
+
+The allowlist represents:
+
+- an explicit collection of supported elements
+- the supported attributes for each element
+- a small collection of globally supported attributes that may apply to
+  every supported element
+
+Elements and attributes outside this model are removed. Support is
+intentionally conservative and expands only through deliberate
+architectural decisions. New elements or attributes must be explicitly
+adopted rather than automatically inherited from broader platform
+support.
+
+---
+
 ## Dialog architecture
 
 The dialog is implemented as a single reusable DOM element.
