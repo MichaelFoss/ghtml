@@ -16,20 +16,24 @@
     "node": "^22"
   },
   "scripts": {
-    "check": "yarn lint && yarn lint:md && yarn format:check",
+    "check": "yarn test && yarn lint && yarn lint:md && yarn format:check",
     "check:fix": "yarn format && yarn lint --fix && yarn lint:md:fix",
     "lint:md": "markdownlint-cli2 \"**/*.md\" \"!node_modules/**\" \"!dist/**\"",
     "lint:md:fix": "markdownlint-cli2 \"**/*.md\" \"!node_modules/**\" \"!dist/**\" --fix",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "private": true,
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.7.0",
     "globals": "^17.7.0",
+    "jsdom": "^29.1.1",
     "markdownlint-cli2": "^0.23.0",
-    "prettier": "^3.9.5"
+    "prettier": "^3.9.5",
+    "vitest": "^4.1.10"
   }
 }

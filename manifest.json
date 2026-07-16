@@ -6,7 +6,7 @@
   "content_scripts": [
     {
       "matches": ["https://mail.google.com/*"],
-      "js": ["sanitizer.js", "content.js"],
+      "js": ["src/sanitizer.js", "src/content.js"],
       "run_at": "document_idle"
     }
   ]
