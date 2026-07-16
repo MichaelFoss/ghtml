@@ -171,6 +171,31 @@ Manual DOM insertion was intentionally rejected.
 
 ---
 
+## Sanitizer security model
+
+The sanitizer exists to:
+
+- prevent active content from being inserted into Gmail
+- prevent dangerous markup from being inserted
+- ensure GHTML never intentionally emits malformed HTML
+- preserve valid user-authored HTML whenever possible
+
+The security and authoring concerns are intentionally separate.
+
+Security requires the sanitizer to prevent dangerous content, remove
+unsupported content, and produce valid output.
+
+Ordinary HTML authoring mistakes are not a security concern. Browsers
+already parse and recover from malformed HTML, and that parsing
+determines the DOM on which GHTML operates. GHTML accepts user mistakes
+as browser input and does not attempt to become an HTML validator or
+correct user-authored HTML beyond normal browser parsing.
+
+Sanitizer correctness therefore refers to the output GHTML produces, not
+to repairing arbitrary input.
+
+---
+
 ## Dialog architecture
 
 The dialog is implemented as a single reusable DOM element.
