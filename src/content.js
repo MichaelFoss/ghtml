@@ -2,6 +2,8 @@
   const MESSAGE_BODY_SELECTOR =
     '[g_editable="true"][role="textbox"][contenteditable="true"]';
   const COMPOSE_WINDOW_SELECTOR = '[role="dialog"]';
+  const DIALOG_STATE_KEY = 'dialogState';
+  const MIN_VISIBLE_TITLE_WIDTH = 48;
   const INDENT = '  ';
 
   function getSelectedLineStarts(value, selectionStart, selectionEnd) {
@@ -125,6 +127,7 @@
     boundSelectionHandler: null,
     boundPositionHandler: null,
     boundDialogKeydownHandler: null,
+    dragOffset: null,
     composeObserver: null,
     composeResizeObserver: null,
 
@@ -328,12 +331,111 @@
     },
 
     closeDialog() {
+      this.saveDialogState();
       this.dialog.removeEventListener(
         'keydown',
         this.boundDialogKeydownHandler,
       );
       this.dialog.style.display = 'none';
       this.clearActiveCompose();
+    },
+
+    getDialogPosition() {
+      const { left, top } = this.dialog.getBoundingClientRect();
+
+      return { left, top };
+    },
+
+    saveDialogState() {
+      const dialogState = {
+        position: this.getDialogPosition(),
+        html: this.textarea.value,
+      };
+
+      globalThis.chrome.storage.local.set({
+        [DIALOG_STATE_KEY]: dialogState,
+      });
+    },
+
+    restoreDialogState() {
+      return globalThis.chrome.storage.local
+        .get(DIALOG_STATE_KEY)
+        .then((result) => {
+          const dialogState = result[DIALOG_STATE_KEY];
+
+          if (!dialogState) {
+            return;
+          }
+
+          const { left, top } = this.constrainDialogPosition(
+            dialogState.position.left,
+            dialogState.position.top,
+          );
+
+          Object.assign(this.dialog.style, {
+            right: 'auto',
+            bottom: 'auto',
+            left: `${left}px`,
+            top: `${top}px`,
+          });
+          this.textarea.value = dialogState.html;
+        });
+    },
+
+    constrainDialogPosition(left, top) {
+      const dialogRect = this.dialog.getBoundingClientRect();
+      const titleRect =
+        this.dialog.firstElementChild.getBoundingClientRect();
+      const minLeft = MIN_VISIBLE_TITLE_WIDTH - dialogRect.width;
+      const maxLeft = window.innerWidth - MIN_VISIBLE_TITLE_WIDTH;
+      const maxTop = window.innerHeight - titleRect.height;
+
+      return {
+        left: Math.min(Math.max(left, minLeft), maxLeft),
+        top: Math.min(Math.max(top, 0), maxTop),
+      };
+    },
+
+    onDialogDragStart(event) {
+      if (event.button !== 0) {
+        return;
+      }
+
+      const { left, top } = this.dialog.getBoundingClientRect();
+
+      this.dragOffset = {
+        x: event.clientX - left,
+        y: event.clientY - top,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    },
+
+    onDialogDrag(event) {
+      if (!this.dragOffset) {
+        return;
+      }
+
+      const { left, top } = this.constrainDialogPosition(
+        event.clientX - this.dragOffset.x,
+        event.clientY - this.dragOffset.y,
+      );
+
+      Object.assign(this.dialog.style, {
+        right: 'auto',
+        bottom: 'auto',
+        left: `${left}px`,
+        top: `${top}px`,
+      });
+    },
+
+    onDialogDragEnd() {
+      if (!this.dragOffset) {
+        return;
+      }
+
+      this.dragOffset = null;
+      this.saveDialogState();
     },
 
     onDialogKeydown(event) {
@@ -400,7 +502,7 @@
           position: 'fixed',
           right: '16px',
           bottom: '64px',
-          display: 'flex',
+          display: 'none',
           flexDirection: 'column',
           width: 'min(600px, calc(100vw - 32px))',
           height: 'min(420px, calc(100vh - 96px))',
@@ -428,7 +530,26 @@
           fontSize: '20px',
           fontWeight: '500',
           lineHeight: '28px',
+          cursor: 'move',
+          userSelect: 'none',
+          touchAction: 'none',
         });
+        title.addEventListener(
+          'pointerdown',
+          this.onDialogDragStart.bind(this),
+        );
+        title.addEventListener(
+          'pointermove',
+          this.onDialogDrag.bind(this),
+        );
+        title.addEventListener(
+          'pointerup',
+          this.onDialogDragEnd.bind(this),
+        );
+        title.addEventListener(
+          'pointercancel',
+          this.onDialogDragEnd.bind(this),
+        );
         dialog.appendChild(title);
 
         const textarea = document.createElement('textarea');
@@ -453,6 +574,9 @@
           resize: 'vertical',
         });
         dialog.appendChild(textarea);
+        textarea.addEventListener('input', () => {
+          this.saveDialogState();
+        });
 
         const buttonsDiv = document.createElement('div');
         Object.assign(buttonsDiv.style, {
@@ -548,13 +672,21 @@
       }
 
       this.activeComposeButton.disabled = true;
+      this.dialog.style.visibility = 'hidden';
       this.dialog.style.display = 'flex';
-      this.dialog.addEventListener(
-        'keydown',
-        this.boundDialogKeydownHandler,
-      );
-      this.textarea.focus();
-      this.textarea.select();
+      this.restoreDialogState()
+        .catch((error) => {
+          this.error(error);
+        })
+        .finally(() => {
+          this.dialog.style.visibility = 'visible';
+          this.dialog.addEventListener(
+            'keydown',
+            this.boundDialogKeydownHandler,
+          );
+          this.textarea.focus();
+          this.textarea.select();
+        });
     },
 
     createButton(label, clickHandler) {
