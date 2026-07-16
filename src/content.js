@@ -16,9 +16,12 @@
     composeButtons: new Map(),
     dialog: null,
     textarea: null,
+    cancelButton: null,
+    insertButton: null,
 
     boundSelectionHandler: null,
     boundPositionHandler: null,
+    boundDialogKeydownHandler: null,
     composeObserver: null,
     composeResizeObserver: null,
 
@@ -93,6 +96,10 @@
 
       this.composeButtons.clear();
       this.clearActiveCompose();
+      this.dialog?.removeEventListener(
+        'keydown',
+        this.boundDialogKeydownHandler,
+      );
       this.dialog?.remove();
 
       this.log('🧹 Playground destroyed.');
@@ -217,6 +224,28 @@
       this.activeComposeButton = null;
     },
 
+    closeDialog() {
+      this.dialog.removeEventListener(
+        'keydown',
+        this.boundDialogKeydownHandler,
+      );
+      this.dialog.style.display = 'none';
+      this.clearActiveCompose();
+    },
+
+    onDialogKeydown(event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this.cancelButton.click();
+        return;
+      }
+
+      if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        this.insertButton.click();
+      }
+    },
+
     showDialog() {
       if (!this.dialog) {
         const dialog = document.createElement('div');
@@ -307,8 +336,7 @@
         });
 
         cancelButton.addEventListener('click', () => {
-          this.dialog.style.display = 'none';
-          this.clearActiveCompose();
+          this.closeDialog();
 
           this.restoreEditor();
         });
@@ -338,8 +366,7 @@
         insertButton.addEventListener('click', () => {
           const html = this.textarea.value;
 
-          this.dialog.style.display = 'none';
-          this.clearActiveCompose();
+          this.closeDialog();
 
           if (!this.restoreSelection()) {
             return;
@@ -367,10 +394,18 @@
 
         this.dialog = dialog;
         this.textarea = textarea;
+        this.cancelButton = cancelButton;
+        this.insertButton = insertButton;
+        this.boundDialogKeydownHandler =
+          this.onDialogKeydown.bind(this);
       }
 
       this.activeComposeButton.disabled = true;
       this.dialog.style.display = 'flex';
+      this.dialog.addEventListener(
+        'keydown',
+        this.boundDialogKeydownHandler,
+      );
       this.textarea.focus();
       this.textarea.select();
     },

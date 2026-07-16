@@ -24,7 +24,7 @@ Do not modify behavior outside the active task.
 ## Task Status
 
 - [x] Task 1 — Improve dialog layout
-- [ ] Task 2 — Add dialog keyboard controls
+- [x] Task 2 — Add dialog keyboard controls
 - [ ] Task 3 — Improve textarea editing
 - [ ] Task 4 — Add dialog dragging and persistence
 - [ ] Task 4.5 - Polish dialog chrome
