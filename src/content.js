@@ -2,6 +2,109 @@
   const MESSAGE_BODY_SELECTOR =
     '[g_editable="true"][role="textbox"][contenteditable="true"]';
   const COMPOSE_WINDOW_SELECTOR = '[role="dialog"]';
+  const INDENT = '  ';
+
+  function getSelectedLineStarts(value, selectionStart, selectionEnd) {
+    const firstLineStart =
+      value.lastIndexOf('\n', selectionStart - 1) + 1;
+    const selectedLineStarts = [firstLineStart];
+    let nextLineStart = value.indexOf('\n', firstLineStart);
+
+    while (nextLineStart !== -1 && nextLineStart + 1 < selectionEnd) {
+      nextLineStart += 1;
+      selectedLineStarts.push(nextLineStart);
+      nextLineStart = value.indexOf('\n', nextLineStart);
+    }
+
+    return selectedLineStarts;
+  }
+
+  function indentSelection(value, selectionStart, selectionEnd) {
+    const lineStarts = getSelectedLineStarts(
+      value,
+      selectionStart,
+      selectionEnd,
+    );
+    let indentedValue = value;
+
+    for (const lineStart of lineStarts.toReversed()) {
+      indentedValue =
+        indentedValue.slice(0, lineStart) +
+        INDENT +
+        indentedValue.slice(lineStart);
+    }
+
+    return {
+      value: indentedValue,
+      selectionStart: selectionStart + INDENT.length,
+      selectionEnd: selectionEnd + INDENT.length * lineStarts.length,
+    };
+  }
+
+  function outdentSelection(value, selectionStart, selectionEnd) {
+    const removals = getSelectedLineStarts(
+      value,
+      selectionStart,
+      selectionEnd,
+    ).map((lineStart) => ({
+      lineStart,
+      length: Math.min(
+        INDENT.length,
+        value.slice(lineStart).match(/^ */)[0].length,
+      ),
+    }));
+    let outdentedValue = value;
+
+    for (const { lineStart, length } of removals.toReversed()) {
+      outdentedValue =
+        outdentedValue.slice(0, lineStart) +
+        outdentedValue.slice(lineStart + length);
+    }
+
+    const adjustPosition = (position) =>
+      position -
+      removals.reduce(
+        (removed, { lineStart, length }) =>
+          removed + Math.min(Math.max(position - lineStart, 0), length),
+        0,
+      );
+
+    return {
+      value: outdentedValue,
+      selectionStart: adjustPosition(selectionStart),
+      selectionEnd: adjustPosition(selectionEnd),
+    };
+  }
+
+  function insertAtSelection(
+    value,
+    selectionStart,
+    selectionEnd,
+    insertedText,
+  ) {
+    const caret = selectionStart + insertedText.length;
+
+    return {
+      value:
+        value.slice(0, selectionStart) +
+        insertedText +
+        value.slice(selectionEnd),
+      selectionStart: caret,
+      selectionEnd: caret,
+    };
+  }
+
+  function insertIndentedNewline(value, selectionStart, selectionEnd) {
+    const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
+    const indentation = value.slice(lineStart).match(/^[\t ]*/)[0];
+
+    return insertAtSelection(
+      value,
+      selectionStart,
+      selectionEnd,
+      `\n${indentation}`,
+    );
+  }
 
   if (window.GHTML) {
     console.warn('[GHTML 🧪] ♻️ Reloading playground...');
@@ -243,7 +346,50 @@
       if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         this.insertButton.click();
+        return;
       }
+
+      if (event.target !== this.textarea) {
+        return;
+      }
+
+      const { value, selectionStart, selectionEnd } = this.textarea;
+      let edit;
+
+      if (event.key === 'Enter') {
+        edit = insertIndentedNewline(
+          value,
+          selectionStart,
+          selectionEnd,
+        );
+      } else if (event.key === 'Tab' && event.shiftKey) {
+        edit = outdentSelection(value, selectionStart, selectionEnd);
+      } else if (
+        event.key === 'Tab' &&
+        value.slice(selectionStart, selectionEnd).includes('\n')
+      ) {
+        edit = indentSelection(value, selectionStart, selectionEnd);
+      } else if (event.key === 'Tab') {
+        edit = insertAtSelection(
+          value,
+          selectionStart,
+          selectionEnd,
+          INDENT,
+        );
+      } else {
+        return;
+      }
+
+      event.preventDefault();
+      this.applyTextareaEdit(edit);
+    },
+
+    applyTextareaEdit(edit) {
+      this.textarea.value = edit.value;
+      this.textarea.setSelectionRange(
+        edit.selectionStart,
+        edit.selectionEnd,
+      );
     },
 
     showDialog() {
@@ -304,6 +450,7 @@
           fontSize: '13px',
           lineHeight: '20px',
           outlineColor: '#1a73e8',
+          resize: 'vertical',
         });
         dialog.appendChild(textarea);
 
