@@ -47,7 +47,7 @@ contract before making behavioral changes.
 
 - [x] Review the current compose lifecycle implementation.
 - [x] Identify the lifecycle entry point.
-- [ ] Identify the lifecycle exit point.
+- [x] Identify the lifecycle exit point.
 - [ ] Document compose discovery.
 - [ ] Document launcher creation.
 - [ ] Document compose ownership.
@@ -68,6 +68,21 @@ The compose lifecycle begins only after `isGmailReady()` succeeds.
 `waitForGmailReady()` then disconnects its readiness observer and calls
 `observeComposeWindows()`, which installs the compose observers and
 performs the initial `syncComposeButtons()` pass.
+
+### Lifecycle Exit Point
+
+An individual compose lifecycle ends during `syncComposeButtons()` when
+`findComposeWindows()` no longer discovers its message body and owning
+compose dialog. The sync pass removes the compose's launcher, stops
+observing the compose with the resize observer, and deletes its launcher
+and saved-selection entries from the per-compose maps.
+
+The content-script runtime has a separate global exit point:
+`GHTML.destroy()`. The script calls it before replacing an existing
+`window.GHTML` instance during reinjection. Global teardown removes the
+document and window listeners, disconnects all observers, cancels the
+pending Gmail-readiness frame, removes all GHTML-owned DOM, clears
+per-compose state, and clears active compose ownership.
 
 ---
 
