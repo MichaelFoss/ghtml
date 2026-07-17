@@ -17,6 +17,29 @@ describe('sanitizeHtml', () => {
     );
   });
 
+  it.each([
+    ['text formatting', '<b>Bold</b><i>Italic</i><u>Underline</u>'],
+    [
+      'semantic formatting',
+      '<abbr>HTML</abbr><cite>Source</cite><code>code</code><del>old</del><s>old</s><small>small</small><strike>old</strike><sub>sub</sub><sup>sup</sup>',
+    ],
+    [
+      'headings and blocks',
+      '<address>Address</address><blockquote>Quote</blockquote><center>Centered</center><h1>One</h1><h2>Two</h2><h3>Three</h3><h4>Four</h4><h5>Five</h5><h6>Six</h6><pre>Pre</pre><q>Quote</q>',
+    ],
+    [
+      'lists',
+      '<dl><dt>Term</dt><dd>Definition</dd></dl><ol><li>One</li></ol><ul><li>Two</li></ul>',
+    ],
+    [
+      'tables',
+      '<table><caption>Caption</caption><colgroup><col></colgroup><thead><tr><th>Head</th></tr></thead><tbody><tr><td>Body</td></tr></tbody><tfoot><tr><td>Foot</td></tr></tfoot></table>',
+    ],
+    ['void and legacy elements', '<br><hr><font>Legacy</font><img>'],
+  ])('preserves supported %s elements', (_description, html) => {
+    expect(sanitizeHtml(html)).toBe(html);
+  });
+
   it('preserves plain text', () => {
     expect(sanitizeHtml('Just plain text')).toBe('Just plain text');
   });
@@ -85,6 +108,36 @@ describe('sanitizeHtml', () => {
     );
   });
 
+  it.each([
+    [
+      'anchors',
+      '<a href="https://example.com" name="section" target="_blank">Example</a>',
+    ],
+    [
+      'quoted sources',
+      '<blockquote cite="https://example.com/source">Quote</blockquote><del cite="https://example.com/revision" datetime="2026-07-17">Old</del><q cite="https://example.com/quote">Quote</q>',
+    ],
+    [
+      'columns',
+      '<table><colgroup span="2" width="100"><col span="2" width="50"></colgroup></table>',
+    ],
+    ['fonts', '<font color="red" face="Arial" size="3">Text</font>'],
+    [
+      'images',
+      '<img alt="Example" height="20" src="https://example.com/image.png" width="40">',
+    ],
+    [
+      'lists',
+      '<ol reversed="" start="3" type="A"><li value="5">Item</li></ol>',
+    ],
+    [
+      'tables',
+      '<table border="1" cellpadding="2" cellspacing="3" width="100"><tbody><tr><th colspan="2" headers="name" rowspan="3" scope="col">Head</th><td colspan="2" headers="name" rowspan="3">Cell</td></tr></tbody></table>',
+    ],
+  ])('preserves supported attributes on %s', (_description, html) => {
+    expect(sanitizeHtml(html)).toBe(html);
+  });
+
   it('removes unsupported attributes', () => {
     expect(
       sanitizeHtml(
@@ -132,6 +185,24 @@ describe('sanitizeHtml', () => {
     );
   });
 
+  it.each(['http://example.com/source', 'https://example.com/source'])(
+    'preserves supported cite URL %s',
+    (url) => {
+      expect(sanitizeHtml(`<q cite="${url}">Quote</q>`)).toBe(
+        `<q cite="${url}">Quote</q>`,
+      );
+    },
+  );
+
+  it.each([
+    'http://example.com/image.png',
+    'https://example.com/image.png',
+  ])('preserves supported src URL %s', (url) => {
+    expect(sanitizeHtml(`<img src="${url}">`)).toBe(
+      `<img src="${url}">`,
+    );
+  });
+
   it.each([
     'script',
     'iframe',
@@ -149,6 +220,14 @@ describe('sanitizeHtml', () => {
   it('removes elements that are not explicitly allowed', () => {
     expect(
       sanitizeHtml('<p>Before</p><dialog>Hidden</dialog><p>After</p>'),
+    ).toBe('<p>Before</p><p>After</p>');
+  });
+
+  it('removes the contents of unsupported elements', () => {
+    expect(
+      sanitizeHtml(
+        '<p>Before</p><dialog><strong>Hidden</strong></dialog><p>After</p>',
+      ),
     ).toBe('<p>Before</p><p>After</p>');
   });
 
@@ -216,6 +295,53 @@ describe('sanitizeHtml', () => {
     expect(sanitizeHtml('<q cite="tel:+15551234567">Quote</q>')).toBe(
       '<q>Quote</q>',
     );
+  });
+
+  it.each([
+    ['cite', 'data:text/plain,source'],
+    ['href', 'data:text/html,example'],
+    ['href', 'ftp://example.com/file'],
+    ['src', 'data:image/png;base64,AAAA'],
+    ['src', 'blob:https://example.com/id'],
+  ])('removes unsupported %s URL %s', (attributeName, url) => {
+    const elementName =
+      attributeName === 'src'
+        ? 'img'
+        : attributeName === 'href'
+          ? 'a'
+          : 'q';
+    const content = elementName === 'img' ? '' : 'Text';
+    const closingTag = elementName === 'img' ? '' : `</${elementName}>`;
+
+    expect(
+      sanitizeHtml(
+        `<${elementName} ${attributeName}="${url}">${content}${closingTag}`,
+      ),
+    ).toBe(`<${elementName}>${content}${closingTag}`);
+  });
+
+  it('removes URL values from otherwise supported CSS properties', () => {
+    expect(
+      sanitizeHtml(
+        '<div style="background-color: url(https://example.com/image.png); color: red">Text</div>',
+      ),
+    ).toBe('<div style="color: red;">Text</div>');
+  });
+
+  it('removes image-set values from otherwise supported CSS properties', () => {
+    expect(
+      sanitizeHtml(
+        '<div style="background-color: image-set(url(https://example.com/image.png) 1x); color: red">Text</div>',
+      ),
+    ).toBe('<div style="color: red;">Text</div>');
+  });
+
+  it('removes custom properties', () => {
+    expect(
+      sanitizeHtml(
+        '<span style="--brand-color: red; color: blue">Text</span>',
+      ),
+    ).toBe('<span style="color: blue;">Text</span>');
   });
 
   it('preserves the element and text when removing a dangerous attribute', () => {

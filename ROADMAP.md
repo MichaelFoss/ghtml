@@ -40,9 +40,9 @@ phase, and planned future work.
   - 5.3.4 Implement CSS policy (Complete) Implement the documented CSS
     policy so supported inline styling is explicit and unsupported CSS
     is removed.
-  - 5.3.5 Expand sanitizer unit tests Expand unit tests to validate the
-    documented sanitizer behavior and its supported HTML, URL, and CSS
-    outcomes.
+  - 5.3.5 Expand sanitizer unit tests (Complete) Expand unit tests to
+    validate the documented sanitizer behavior and its supported HTML,
+    URL, and CSS outcomes.
   - 5.3.6 Update README supported HTML section Update the README to
     describe the supported HTML contract once the implementation
     reflects the documented architecture.
