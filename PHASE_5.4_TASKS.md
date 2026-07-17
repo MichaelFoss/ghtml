@@ -51,7 +51,7 @@ contract before making behavioral changes.
 - [x] Document compose discovery.
 - [x] Document launcher creation.
 - [x] Document compose ownership.
-- [ ] Document selection ownership.
+- [x] Document selection ownership.
 - [ ] Document dialog ownership.
 - [ ] Document HTML insertion.
 - [ ] Document cleanup.
@@ -159,6 +159,41 @@ the launcher and saved range for that dialog are removed together.
 `GHTML.destroy()` performs the equivalent global release by removing all
 launchers, clearing both per-compose maps, and clearing active
 ownership.
+
+### Selection Ownership
+
+Selection state is owned per compose dialog in `composeSelections`. The
+document-level `selectionchange` listener resolves the active element to
+a Gmail message body and then to its containing compose dialog. It saves
+a clone of the browser's first range under that dialog, so later browser
+selection changes cannot mutate the stored range and a selection from
+one compose cannot replace another compose's entry. Selection changes
+outside a Gmail message body, without a range, or without a valid
+compose dialog are ignored.
+
+While the shared HTML dialog owns an active compose,
+`onSelectionChange()` ignores all selection changes. This freezes the
+owning compose's saved range while focus moves into the GHTML dialog and
+prevents another compose from taking selection ownership during the
+dialog session. The launcher's `mousedown` handler also prevents the
+launcher itself from taking focus before its click callback establishes
+active compose ownership.
+
+`restoreEditor()` restores selection only for the compose dialog passed
+to it, defaulting to `activeComposeWindow`. It resolves that compose's
+current message body and, if the compose has no saved selection, creates
+a collapsed fallback range at the end of that editor. It then focuses
+the editor and delegates to `restoreSelection()`, which replaces the
+browser selection with the range stored under the same compose key.
+Dialog cancel and insert both use this restoration path before active
+ownership is cleared; insertion therefore executes against the restored
+selection belonging to the dialog's owning compose.
+
+Selection ownership lasts for the discovered compose lifecycle.
+`syncComposeButtons()` deletes the compose's saved range when discovery
+no longer returns that compose dialog, and `GHTML.destroy()` clears all
+saved selections during global teardown. Saved ranges are runtime-only
+state and are never persisted.
 
 ---
 
