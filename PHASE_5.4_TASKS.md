@@ -52,10 +52,14 @@ contract before making behavioral changes.
 - [x] Document launcher creation.
 - [x] Document compose ownership.
 - [x] Document selection ownership.
-- [ ] Document dialog ownership.
+- [x] Document dialog ownership.
 - [ ] Document HTML insertion.
 - [ ] Document cleanup.
-- [ ] Update `ARCHITECTURE.md`.
+- [ ] Promote the finalized lifecycle contract from `PHASE_5.4_TASKS.md`
+      into `ARCHITECTURE.md`, reorganizing it as permanent architecture
+      documentation. Once verified, remove the temporary lifecycle draft
+      from `PHASE_5.4_TASKS.md`, leaving only the implementation
+      checklist.
 - [ ] Mark roadmap item 5.4.1 complete.
 
 ### Lifecycle Entry Point
@@ -194,6 +198,39 @@ Selection ownership lasts for the discovered compose lifecycle.
 no longer returns that compose dialog, and `GHTML.destroy()` clears all
 saved selections during global teardown. Saved ranges are runtime-only
 state and are never persisted.
+
+### Dialog Ownership
+
+The HTML dialog is shared across all compose windows, but each open
+dialog session is owned by exactly one compose dialog. Ownership is
+established by the launcher click callback in `createComposeButton()`,
+which copies the clicked launcher's compose dialog into
+`activeComposeWindow` and the launcher itself into `activeComposeButton`
+before calling `showDialog()`.
+
+`showDialog()` creates the shared backdrop, dialog, textarea, and action
+buttons on first use, then reuses those elements for later compose
+sessions. The active launcher is disabled while the dialog is open, and
+all launcher z-indexes are lowered behind the modal layer so the shared
+dialog remains the active interaction surface. Dialog state is restored
+from extension storage before focus moves into the textarea.
+
+While the dialog is open, ownership is enforced through the active
+compose references and modal listeners. The window-level keydown handler
+stops Gmail shortcuts and routes dialog keyboard actions, while the
+document-level focus handler returns stray focus to the textarea. The
+selectionchange handler also ignores browser selection changes whenever
+`activeComposeWindow` is set, so focus movement inside the dialog cannot
+overwrite the owning compose's saved range.
+
+Dialog close always resolves through the active compose captured at the
+start of `closeDialog()`. The dialog state is persisted, modal listeners
+are removed, the dialog and backdrop are hidden, launcher z-indexes are
+restored, and `restoreEditor()` is called for that captured compose.
+Only after restoration does `clearActiveCompose()` re-enable the owning
+launcher and clear the active references. Cancel, close, and insert all
+use this close path; insert proceeds only if the owning compose's editor
+and selection were restored successfully.
 
 ---
 
