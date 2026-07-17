@@ -59,15 +59,21 @@ describe('sanitizeHtml', () => {
     'link',
     'meta',
     'base',
-  ])('removes disallowed <%s> elements', (elementName) => {
+  ])('removes unsupported <%s> elements', (elementName) => {
     const html = `<p>Before</p><${elementName}></${elementName}><p>After</p>`;
 
     expect(sanitizeHtml(html)).toBe('<p>Before</p><p>After</p>');
   });
 
+  it('removes elements that are not explicitly allowed', () => {
+    expect(
+      sanitizeHtml('<p>Before</p><dialog>Hidden</dialog><p>After</p>'),
+    ).toBe('<p>Before</p><p>After</p>');
+  });
+
   it('removes onclick attributes', () => {
-    expect(sanitizeHtml('<button onclick="run()">Click</button>')).toBe(
-      '<button>Click</button>',
+    expect(sanitizeHtml('<div onclick="run()">Click</div>')).toBe(
+      '<div>Click</div>',
     );
   });
 
