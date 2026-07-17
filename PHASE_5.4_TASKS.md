@@ -54,7 +54,7 @@ contract before making behavioral changes.
 - [x] Document selection ownership.
 - [x] Document dialog ownership.
 - [x] Document HTML insertion.
-- [ ] Document cleanup.
+- [x] Document cleanup.
 - [ ] Promote the finalized lifecycle contract from `PHASE_5.4_TASKS.md`
       into `ARCHITECTURE.md`, reorganizing it as permanent architecture
       documentation. Once verified, remove the temporary lifecycle draft
@@ -261,6 +261,38 @@ changes are frozen while the dialog is open and the owning compose's
 saved range is restored before `execCommand()`, the inserted HTML
 replaces or appears at the selection belonging to the compose that
 opened the dialog, not any other compose window.
+
+### Cleanup
+
+Per-compose cleanup happens during `syncComposeButtons()`. Each sync
+builds the current discovered compose set from Gmail message bodies and
+their containing dialog elements, then compares that set with the
+existing `composeButtons` map. A compose is considered removed when its
+dialog key is still in `composeButtons` but no longer appears in the
+fresh discovery result.
+
+When a compose is removed, `syncComposeButtons()` removes its
+GHTML-owned launcher from the document, unregisters the compose dialog
+from the shared resize observer, deletes the compose's launcher entry,
+and deletes the saved selection owned by the same compose key. This
+keeps the launcher and runtime selection state tied to the discovered
+compose lifecycle. The shared dialog DOM, persisted dialog state, and
+state for other discovered compose windows are not removed during
+per-compose cleanup.
+
+Global cleanup happens in `GHTML.destroy()`, which is called before a
+new content-script instance replaces an existing `window.GHTML` object.
+Global teardown removes the document selection listener and window
+resize and scroll listeners, disconnects the compose mutation observer,
+compose resize observer, and Gmail readiness observer, and cancels any
+scheduled readiness animation frame.
+
+`GHTML.destroy()` then removes every GHTML-owned launcher, clears both
+per-compose maps, clears active compose ownership, removes modal
+keyboard and focus listeners, and removes the shared backdrop and dialog
+from the document. After global teardown, no launcher, dialog, observer,
+listener, saved selection, or active compose reference from that
+content-script instance should remain intentionally owned by GHTML.
 
 ---
 
