@@ -60,7 +60,7 @@ contract before making behavioral changes.
       documentation. Once verified, remove the temporary lifecycle draft
       from `PHASE_5.4_TASKS.md`, leaving only the implementation
       checklist.
-- [ ] Mark roadmap item 5.4.1 complete.
+- [x] Mark roadmap item 5.4.1 complete.
 
 ---
 

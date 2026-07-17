@@ -47,9 +47,9 @@ phase, and planned future work.
     README to describe the supported HTML contract once the
     implementation reflects the documented architecture.
 - 5.4 Lifecycle hardening (In Progress)
-  - 5.4.1 Formalize compose lifecycle Document the complete compose
-    lifecycle from discovery through destruction and define ownership
-    transitions.
+  - 5.4.1 Formalize compose lifecycle (Complete) Document the complete
+    compose lifecycle from discovery through destruction and define
+    ownership transitions.
   - 5.4.2 Harden compose discovery Ensure compose discovery remains
     reliable during Gmail navigation, draft restoration, and delayed
     compose creation.
