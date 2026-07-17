@@ -46,7 +46,7 @@ contract before making behavioral changes.
 ### Implementation Steps
 
 - [x] Review the current compose lifecycle implementation.
-- [ ] Identify the lifecycle entry point.
+- [x] Identify the lifecycle entry point.
 - [ ] Identify the lifecycle exit point.
 - [ ] Document compose discovery.
 - [ ] Document launcher creation.
@@ -57,6 +57,17 @@ contract before making behavioral changes.
 - [ ] Document cleanup.
 - [ ] Update `ARCHITECTURE.md`.
 - [ ] Mark roadmap item 5.4.1 complete.
+
+### Lifecycle Entry Point
+
+Chrome injects `content.js` at `document_idle`, and the module invokes
+`GHTML.init()`. Initialization installs the document- and window-level
+selection and positioning listeners, then enters `waitForGmailReady()`.
+
+The compose lifecycle begins only after `isGmailReady()` succeeds.
+`waitForGmailReady()` then disconnects its readiness observer and calls
+`observeComposeWindows()`, which installs the compose observers and
+performs the initial `syncComposeButtons()` pass.
 
 ---
 
