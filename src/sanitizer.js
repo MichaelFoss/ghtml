@@ -84,6 +84,71 @@
     ['src', new Set(['http:', 'https:'])],
   ]);
 
+  const ALLOWED_CSS_PROPERTIES = new Set([
+    'background-color',
+    'border',
+    'border-bottom',
+    'border-bottom-color',
+    'border-bottom-style',
+    'border-bottom-width',
+    'border-collapse',
+    'border-color',
+    'border-left',
+    'border-left-color',
+    'border-left-style',
+    'border-left-width',
+    'border-right',
+    'border-right-color',
+    'border-right-style',
+    'border-right-width',
+    'border-spacing',
+    'border-style',
+    'border-top',
+    'border-top-color',
+    'border-top-style',
+    'border-top-width',
+    'border-width',
+    'color',
+    'display',
+    'font',
+    'font-family',
+    'font-size',
+    'font-style',
+    'font-variant',
+    'font-weight',
+    'height',
+    'letter-spacing',
+    'line-height',
+    'list-style-position',
+    'list-style-type',
+    'margin',
+    'margin-bottom',
+    'margin-left',
+    'margin-right',
+    'margin-top',
+    'max-height',
+    'max-width',
+    'min-height',
+    'min-width',
+    'overflow-wrap',
+    'padding',
+    'padding-bottom',
+    'padding-left',
+    'padding-right',
+    'padding-top',
+    'text-align',
+    'text-decoration',
+    'text-indent',
+    'text-transform',
+    'vertical-align',
+    'white-space',
+    'width',
+    'word-break',
+    'word-spacing',
+  ]);
+
+  const UNSUPPORTED_CSS_VALUE_PATTERN = /(?:image-set|url)\s*\(/i;
+
   function sanitizeHtml(html) {
     const parser = new DOMParser();
     const document = parser.parseFromString(html, 'text/html');
@@ -127,8 +192,44 @@
         !isAllowedUrl(attributeName, attribute.value)
       ) {
         element.removeAttribute(attribute.name);
+        continue;
+      }
+
+      if (attributeName === 'style') {
+        sanitizeStyle(element);
       }
     }
+  }
+
+  function sanitizeStyle(element) {
+    const sanitizedStyle =
+      element.ownerDocument.createElement('span').style;
+
+    for (let index = 0; index < element.style.length; index += 1) {
+      const propertyName = element.style.item(index).toLowerCase();
+      const propertyValue =
+        element.style.getPropertyValue(propertyName);
+
+      if (
+        !ALLOWED_CSS_PROPERTIES.has(propertyName) ||
+        UNSUPPORTED_CSS_VALUE_PATTERN.test(propertyValue)
+      ) {
+        continue;
+      }
+
+      sanitizedStyle.setProperty(
+        propertyName,
+        propertyValue,
+        element.style.getPropertyPriority(propertyName),
+      );
+    }
+
+    if (sanitizedStyle.length === 0) {
+      element.removeAttribute('style');
+      return;
+    }
+
+    element.setAttribute('style', sanitizedStyle.cssText);
   }
 
   function isAllowedAttribute(elementName, attributeName) {

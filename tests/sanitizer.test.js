@@ -21,10 +21,42 @@ describe('sanitizeHtml', () => {
     expect(sanitizeHtml('Just plain text')).toBe('Just plain text');
   });
 
-  it('preserves inline styles', () => {
-    expect(sanitizeHtml('<span style="color: red">Red</span>')).toBe(
-      '<span style="color: red">Red</span>',
-    );
+  it('preserves supported inline styles', () => {
+    expect(
+      sanitizeHtml(
+        '<span style="color: red; font-weight: bold">Red</span>',
+      ),
+    ).toBe('<span style="color: red; font-weight: bold;">Red</span>');
+  });
+
+  it('removes unsupported inline styles', () => {
+    expect(
+      sanitizeHtml(
+        '<span style="color: red; position: fixed; opacity: 0">Red</span>',
+      ),
+    ).toBe('<span style="color: red;">Red</span>');
+  });
+
+  it('removes URL-bearing inline styles', () => {
+    expect(
+      sanitizeHtml(
+        '<div style="background-color: red; background-image: url(https://example.com/image.png)">Text</div>',
+      ),
+    ).toBe('<div style="background-color: red;">Text</div>');
+  });
+
+  it('removes style attributes with no supported declarations', () => {
+    expect(
+      sanitizeHtml(
+        '<span style="position: fixed; opacity: 0">Text</span>',
+      ),
+    ).toBe('<span>Text</span>');
+  });
+
+  it('preserves important priority on supported inline styles', () => {
+    expect(
+      sanitizeHtml('<span style="color: red !important">Red</span>'),
+    ).toBe('<span style="color: red !important;">Red</span>');
   });
 
   it('preserves classes', () => {
@@ -39,7 +71,7 @@ describe('sanitizeHtml', () => {
         '<p class="message" dir="rtl" lang="ar" style="color: red" title="Greeting">Hello</p>',
       ),
     ).toBe(
-      '<p class="message" dir="rtl" lang="ar" style="color: red" title="Greeting">Hello</p>',
+      '<p class="message" dir="rtl" lang="ar" style="color: red;" title="Greeting">Hello</p>',
     );
   });
 

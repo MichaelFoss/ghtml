@@ -186,17 +186,21 @@ ab<inserted HTML>f
 - Unsupported URL attributes are removed.
 - The owning elements and any text content remain.
 
-### SAN-005 Preserve inline styles
+### SAN-005 Apply CSS policy
 
 1. Insert:
 
    ```html
-   <span style="color:red;font-weight:bold"> Styled </span>
+   <span style="color:red;font-weight:bold;position:fixed">
+     Styled
+   </span>
    ```
 
 **Expected:**
 
-- Inline styles are preserved.
+- Supported inline styles are preserved.
+- Unsupported inline styles are removed.
+- The element and its text remain.
 
 ### SAN-006 Preserve classes
 
