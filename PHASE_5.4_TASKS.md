@@ -53,7 +53,7 @@ contract before making behavioral changes.
 - [x] Document compose ownership.
 - [x] Document selection ownership.
 - [x] Document dialog ownership.
-- [ ] Document HTML insertion.
+- [x] Document HTML insertion.
 - [ ] Document cleanup.
 - [ ] Promote the finalized lifecycle contract from `PHASE_5.4_TASKS.md`
       into `ARCHITECTURE.md`, reorganizing it as permanent architecture
@@ -231,6 +231,36 @@ Only after restoration does `clearActiveCompose()` re-enable the owning
 launcher and clear the active references. Cancel, close, and insert all
 use this close path; insert proceeds only if the owning compose's editor
 and selection were restored successfully.
+
+### HTML Insertion
+
+Insertion starts from the shared dialog's Insert button. The click
+handler copies the current textarea value before closing the dialog, so
+the user-authored HTML for that insertion is stable even though
+`closeDialog()` persists state, hides the modal, and restores Gmail
+focus.
+
+`closeDialog()` is part of the insertion path rather than a separate
+post-insertion cleanup step. It restores the active compose editor and
+that compose's saved selection before active ownership is cleared. If
+the editor or selection cannot be restored, `closeDialog()` returns
+`false` and insertion stops without sanitizing or calling
+`execCommand()`.
+
+After the owning compose is restored, insertion sanitizes the copied
+HTML with the single runtime sanitizer entry point,
+`globalThis.sanitizeHtml()`. The sanitized output is then inserted with
+`document.execCommand('insertHTML', false, sanitizedHtml)`. This keeps
+GHTML aligned with Gmail's native editing stack so insertion preserves
+Gmail undo, redo, cursor placement, selection replacement, and other
+editor behavior more closely than manual DOM insertion.
+
+Insertion is always targeted through the active compose ownership that
+was established when the launcher opened the dialog. Because selection
+changes are frozen while the dialog is open and the owning compose's
+saved range is restored before `execCommand()`, the inserted HTML
+replaces or appears at the selection belonging to the compose that
+opened the dialog, not any other compose window.
 
 ---
 
