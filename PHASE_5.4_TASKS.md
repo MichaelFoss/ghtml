@@ -48,7 +48,7 @@ contract before making behavioral changes.
 - [x] Review the current compose lifecycle implementation.
 - [x] Identify the lifecycle entry point.
 - [x] Identify the lifecycle exit point.
-- [ ] Document compose discovery.
+- [x] Document compose discovery.
 - [ ] Document launcher creation.
 - [ ] Document compose ownership.
 - [ ] Document selection ownership.
@@ -83,6 +83,31 @@ The content-script runtime has a separate global exit point:
 document and window listeners, disconnects all observers, cancels the
 pending Gmail-readiness frame, removes all GHTML-owned DOM, clears
 per-compose state, and clears active compose ownership.
+
+### Compose Discovery
+
+Compose discovery starts in `observeComposeWindows()` after Gmail
+readiness succeeds. The function creates a document-body
+`MutationObserver`, observes child-list changes plus `class` and `style`
+attribute changes across the subtree, and performs an immediate
+`syncComposeButtons()` pass so compose windows already present at
+startup are included.
+
+Each sync calls `findComposeWindows()`. Discovery queries the document
+for Gmail message bodies matching the editable textbox selector, finds
+the nearest ancestor with `role="dialog"` for each body, accepts only
+`HTMLElement` ancestors, and collects them in a `Set`. The message body
+is therefore the discovery anchor and the containing dialog is the
+compose identity. The set prevents more than one discovery result for a
+single compose dialog.
+
+Subsequent qualifying DOM mutations trigger another complete sync.
+Mutations whose targets are all GHTML launcher buttons are ignored so
+GHTML's own button updates do not recursively trigger discovery. A
+compose remains discovered while its matching message body and dialog
+remain in the document, including when Gmail hides the message body for
+a minimized compose; minimized-state handling is separate from
+discovery.
 
 ---
 
