@@ -26,8 +26,8 @@ phase, and planned future work.
 ▶ In Progress
 
 - 5.1 Documentation alignment (Complete)
-- 5.2 Sanitizer contract (In Progress)
-- 5.3 Sanitizer hardening (Complete)
+- 5.2 Sanitizer contract (Complete)
+- 5.3 Sanitizer implementation (Complete)
   - 5.3.1 Replace denylist with allowlist (Complete) Replace the
     denylist model with the documented allowlist model so sanitizer
     support is explicit and conservative.
