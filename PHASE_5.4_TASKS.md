@@ -71,16 +71,109 @@ contract before making behavioral changes.
 Ensure compose discovery is reliable regardless of Gmail timing or UI
 state.
 
+### Current Implementation Review
+
+- Compose discovery starts only after `waitForGmailReady()` confirms the
+  Gmail main UI is visible and the startup overlay is gone.
+- `observeComposeWindows()` installs one document-body
+  `MutationObserver`, one shared `ResizeObserver`, and immediately calls
+  `syncComposeButtons()`.
+- `findComposeWindows()` uses Gmail message bodies as discovery anchors
+  and their closest `role="dialog"` ancestor as the compose identity.
+- `syncComposeButtons()` creates launchers for newly discovered compose
+  dialogs, removes launchers and saved selections for
+  no-longer-discovered compose dialogs, and repositions all launchers
+  after every sync.
+- Minimized compose windows remain discovered while their message body
+  still exists; `positionButton()` hides their launcher separately from
+  discovery.
+
+### Architectural Observations
+
+- The implementation currently matches the documented lifecycle contract
+  at the high level: readiness gate, message-body discovery anchor,
+  compose-dialog identity, idempotent launcher map, and cleanup through
+  `syncComposeButtons()`.
+- Discovery is intentionally broad: any qualifying mutation outside
+  GHTML launcher button targets triggers a full document resync. This is
+  simple and resilient, but can do extra work during busy Gmail DOM
+  changes.
+- The observer ignores mutations only when every mutation target is a
+  GHTML launcher button. Mutations to launcher descendants or future
+  GHTML-owned DOM outside the button may still trigger discovery syncs.
+- Discovery depends on the editable message body remaining in the DOM.
+  If Gmail temporarily removes or swaps the body during draft
+  restoration, navigation, or delayed compose hydration, the current
+  cleanup path may remove launcher and selection state before the
+  compose returns.
+- `findComposeWindow()` returns the nearest `role="dialog"` ancestor
+  without additional compose-specific validation. This is consistent
+  with the current architecture, but Phase 5.4.2 should verify whether
+  Gmail exposes non-compose editable textboxes inside dialogs that could
+  match the selector.
+- Gmail SPA navigation is covered only indirectly by the document-body
+  observer. If Gmail replaces `document.body` or moves compose DOM in a
+  way that disconnects the observed body, discovery may need a guarded
+  observer reattachment strategy.
+- Current automated tests cover sanitizer and dialog helpers only.
+  Compose discovery remains manual/runtime behavior until lifecycle
+  helpers are extracted or test seams are introduced in later 5.4 work.
+
 ### Implementation Steps
 
-- [ ] Audit compose discovery.
-- [ ] Audit MutationObserver behavior.
-- [ ] Audit delayed compose creation.
-- [ ] Audit restored drafts.
-- [ ] Audit minimized compose windows.
-- [ ] Audit Gmail SPA navigation.
-- [ ] Remove duplicate launcher creation opportunities.
-- [ ] Add regression tests.
+- [ ] Reproduce and document the current discovery baseline in Gmail:
+      new compose, reply compose, pop-out compose, multiple simultaneous
+      compose windows, minimized compose restore, draft restore after
+      reload, delayed compose creation after startup, and Gmail
+      route/navigation changes.
+- [ ] Add temporary development logging, if needed, only while manually
+      auditing discovery. Remove or explicitly keep any logging before
+      completing the implementation.
+- [ ] Verify that `waitForGmailReady()` still prevents launcher
+      initialization before Gmail's restored DOM is visible.
+- [ ] Verify that `observeComposeWindows()` remains attached after Gmail
+      route/navigation changes and identify whether Gmail can replace
+      the observed `document.body`.
+- [ ] Verify that `findComposeWindows()` discovers all expected Gmail
+      compose variants and does not discover non-compose editable
+      textboxes inside unrelated Gmail dialogs.
+- [ ] Verify that the message body is stable enough to remain the
+      discovery anchor during draft restoration, delayed compose
+      hydration, minimize/restore, and pop-out transitions.
+- [ ] Verify that `syncComposeButtons()` is idempotent across the
+      initial sync, mutation-driven syncs, resize-driven positioning,
+      and multiple compose windows.
+- [ ] Verify that removing a compose from discovery does not happen
+      prematurely during transient Gmail DOM changes that later restore
+      the same compose.
+- [ ] Verify that GHTML-owned DOM mutations, including launcher child or
+      style changes and shared dialog changes, do not create recursive
+      or excessive compose syncs.
+- [ ] Decide whether discovery needs a small implementation change. Keep
+      any change limited to compose discovery and avoid altering
+      launcher ownership, selection ownership, dialog behavior,
+      insertion, or sanitizer behavior.
+- [ ] If Gmail can replace the observed root, add a guarded observer
+      reattachment path that preserves the existing readiness contract
+      and avoids continuous polling.
+- [ ] If transient compose DOM removal is observed, add the smallest
+      lifecycle-safe debounce or confirmation step needed before
+      per-compose cleanup. Preserve cleanup guarantees for genuinely
+      closed compose windows.
+- [ ] If non-compose editable dialogs are discovered, tighten discovery
+      with the smallest Gmail-specific validation that still supports
+      existing compose variants.
+- [ ] If GHTML-owned mutations cause recursive or excessive syncs,
+      expand the self-mutation filter to cover GHTML-owned
+      launcher/dialog DOM without suppressing Gmail compose mutations.
+- [ ] Add focused regression coverage only after a testable helper or
+      seam exists. If helper extraction belongs more naturally in 5.4.5,
+      document the test gap and defer broad test expansion there.
+- [ ] Run the manual regression scenarios that correspond to any changed
+      discovery behavior, referencing stable IDs from `TESTING.md` where
+      applicable.
+- [ ] Run `yarn run check`.
+- [ ] Run `git diff --check`.
 - [ ] Mark roadmap item 5.4.2 complete.
 
 ---
