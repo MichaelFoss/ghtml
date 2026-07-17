@@ -137,6 +137,79 @@ Other Chromium browsers may work but are not officially tested.
 
 ---
 
+## Supported HTML
+
+GHTML sanitizes HTML immediately before insertion. Support is based on
+an explicit allowlist: unsupported elements are removed with their
+contents, and unsupported attributes and inline style declarations are
+removed while the owning supported element remains.
+
+Supported elements:
+
+```text
+a, abbr, address, b, blockquote, br, caption, center, cite, code, col,
+colgroup, dd, del, div, dl, dt, em, font, h1, h2, h3, h4, h5, h6, hr,
+i, img, li, ol, p, pre, q, s, small, span, strike, strong, sub, sup,
+table, tbody, td, tfoot, th, thead, tr, u, ul
+```
+
+The following attributes are supported on every supported element:
+
+```text
+class, dir, lang, style, title
+```
+
+Additional element-specific attributes:
+
+| Element           | Attributes                                      |
+| ----------------- | ----------------------------------------------- |
+| `a`               | `href`, `name`, `target`                        |
+| `blockquote`      | `cite`                                          |
+| `col`, `colgroup` | `span`, `width`                                 |
+| `del`             | `cite`, `datetime`                              |
+| `font`            | `color`, `face`, `size`                         |
+| `img`             | `alt`, `height`, `src`, `width`                 |
+| `li`              | `value`                                         |
+| `ol`              | `reversed`, `start`, `type`                     |
+| `q`               | `cite`                                          |
+| `table`           | `border`, `cellpadding`, `cellspacing`, `width` |
+| `td`              | `colspan`, `headers`, `rowspan`                 |
+| `th`              | `colspan`, `headers`, `rowspan`, `scope`        |
+
+URL-bearing attributes accept only absolute URLs with these schemes:
+
+| Attribute     | Schemes                              |
+| ------------- | ------------------------------------ |
+| `href`        | `http:`, `https:`, `mailto:`, `tel:` |
+| `cite`, `src` | `http:`, `https:`                    |
+
+Relative URLs, malformed URLs, and all other schemes are removed.
+
+Supported inline CSS properties:
+
+```text
+background-color, border, border-bottom, border-bottom-color,
+border-bottom-style, border-bottom-width, border-collapse, border-color,
+border-left, border-left-color, border-left-style, border-left-width,
+border-right, border-right-color, border-right-style, border-right-width,
+border-spacing, border-style, border-top, border-top-color,
+border-top-style, border-top-width, border-width, color, display, font,
+font-family, font-size, font-style, font-variant, font-weight, height,
+letter-spacing, line-height, list-style-position, list-style-type, margin,
+margin-bottom, margin-left, margin-right, margin-top, max-height, max-width,
+min-height, min-width, overflow-wrap, padding, padding-bottom, padding-left,
+padding-right, padding-top, text-align, text-decoration, text-indent,
+text-transform, vertical-align, white-space, width, word-break, word-spacing
+```
+
+CSS custom properties and declarations containing `url()` or
+`image-set()` are removed. `<style>` elements are not supported.
+
+Gmail may independently normalize or remove markup after GHTML inserts
+it.
+
+---
+
 ## License
 
 MIT
