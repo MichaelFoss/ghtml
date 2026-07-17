@@ -51,6 +51,33 @@
     'ul',
   ]);
 
+  const GLOBAL_ALLOWED_ATTRIBUTES = new Set([
+    'class',
+    'dir',
+    'lang',
+    'style',
+    'title',
+  ]);
+
+  const ELEMENT_ALLOWED_ATTRIBUTES = new Map([
+    ['a', new Set(['href', 'name', 'target'])],
+    ['blockquote', new Set(['cite'])],
+    ['col', new Set(['span', 'width'])],
+    ['colgroup', new Set(['span', 'width'])],
+    ['del', new Set(['cite', 'datetime'])],
+    ['font', new Set(['color', 'face', 'size'])],
+    ['img', new Set(['alt', 'height', 'src', 'width'])],
+    ['li', new Set(['value'])],
+    ['ol', new Set(['reversed', 'start', 'type'])],
+    ['q', new Set(['cite'])],
+    [
+      'table',
+      new Set(['border', 'cellpadding', 'cellspacing', 'width']),
+    ],
+    ['td', new Set(['colspan', 'headers', 'rowspan'])],
+    ['th', new Set(['colspan', 'headers', 'rowspan', 'scope'])],
+  ]);
+
   function sanitizeHtml(html) {
     const parser = new DOMParser();
     const document = parser.parseFromString(html, 'text/html');
@@ -84,7 +111,7 @@
     for (const attribute of [...element.attributes]) {
       const attributeName = attribute.name.toLowerCase();
 
-      if (attributeName.startsWith('on')) {
+      if (!isAllowedAttribute(element.localName, attributeName)) {
         element.removeAttribute(attribute.name);
         continue;
       }
@@ -96,6 +123,17 @@
         element.removeAttribute(attribute.name);
       }
     }
+  }
+
+  function isAllowedAttribute(elementName, attributeName) {
+    if (GLOBAL_ALLOWED_ATTRIBUTES.has(attributeName)) {
+      return true;
+    }
+
+    return (
+      ELEMENT_ALLOWED_ATTRIBUTES.get(elementName)?.has(attributeName) ??
+      false
+    );
   }
 
   function isJavaScriptUrl(value) {

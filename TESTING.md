@@ -196,17 +196,18 @@ ab<inserted HTML>f
 
 - Class attribute is preserved.
 
-### SAN-007 Preserve data attributes
+### SAN-007 Remove unsupported attributes
 
 1. Insert:
 
    ```html
-   <div data-id="123">Test</div>
+   <div aria-label="Message" data-id="123" draggable="true">Test</div>
    ```
 
 **Expected:**
 
-- `data-id` remains.
+- Unsupported attributes are removed.
+- The element and its text remain.
 
 ---
 

@@ -31,9 +31,9 @@ phase, and planned future work.
   - 5.3.1 Replace denylist with allowlist Replace the denylist model
     with the documented allowlist model so sanitizer support is explicit
     and conservative.
-  - 5.3.2 Implement supported HTML contract Implement the supported HTML
-    contract through explicit element and attribute support, with
-    unsupported markup removed.
+  - 5.3.2 Implement supported HTML contract (Complete) Implement the
+    supported HTML contract through explicit element and attribute
+    support, with unsupported markup removed.
   - 5.3.3 Implement URL policy Implement the documented URL policy with
     a conservative, fail-closed outcome for URLs that cannot be
     confidently accepted.

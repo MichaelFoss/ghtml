@@ -33,10 +33,38 @@ describe('sanitizeHtml', () => {
     ).toBe('<div class="message featured">Text</div>');
   });
 
-  it('preserves data attributes', () => {
-    expect(sanitizeHtml('<div data-message-id="123">Text</div>')).toBe(
-      '<div data-message-id="123">Text</div>',
+  it('preserves globally supported attributes', () => {
+    expect(
+      sanitizeHtml(
+        '<p class="message" dir="rtl" lang="ar" style="color: red" title="Greeting">Hello</p>',
+      ),
+    ).toBe(
+      '<p class="message" dir="rtl" lang="ar" style="color: red" title="Greeting">Hello</p>',
     );
+  });
+
+  it('preserves supported element-specific attributes', () => {
+    expect(
+      sanitizeHtml(
+        '<a href="https://example.com" target="_blank">Example</a><img alt="Example" height="20" src="image.png" width="40">',
+      ),
+    ).toBe(
+      '<a href="https://example.com" target="_blank">Example</a><img alt="Example" height="20" src="image.png" width="40">',
+    );
+  });
+
+  it('removes unsupported attributes', () => {
+    expect(
+      sanitizeHtml(
+        '<div aria-label="Message" data-message-id="123" draggable="true">Text</div>',
+      ),
+    ).toBe('<div>Text</div>');
+  });
+
+  it('removes attributes supported only by another element', () => {
+    expect(
+      sanitizeHtml('<div href="https://example.com">Text</div>'),
+    ).toBe('<div>Text</div>');
   });
 
   it('preserves safe href values', () => {
