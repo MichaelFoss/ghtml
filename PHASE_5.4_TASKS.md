@@ -50,7 +50,7 @@ contract before making behavioral changes.
 - [x] Identify the lifecycle exit point.
 - [x] Document compose discovery.
 - [x] Document launcher creation.
-- [ ] Document compose ownership.
+- [x] Document compose ownership.
 - [ ] Document selection ownership.
 - [ ] Document dialog ownership.
 - [ ] Document HTML insertion.
@@ -134,6 +134,31 @@ Window resize and scroll listeners, the compose `ResizeObserver`, and
 each sync pass subsequently reposition all launchers. A minimized
 compose keeps its launcher entry but `positionButton()` hides the button
 until the compose is restored.
+
+### Compose Ownership
+
+The Gmail compose dialog element is the identity and ownership key for
+each compose lifecycle. `composeButtons` maps that dialog to its
+GHTML-owned launcher, and `composeSelections` uses the same dialog key
+for the compose's saved range. Launcher positioning, selection
+restoration, insertion targeting, and cleanup therefore resolve through
+the same compose identity rather than through document-wide state.
+
+Each launcher's click callback closes over its owning compose dialog and
+the launcher created for it. Clicking the launcher copies that pair into
+`activeComposeWindow` and `activeComposeButton` before opening the
+shared dialog. Those active references freeze ownership for the dialog
+session: selection changes are ignored while an active compose exists,
+and dialog close restores only that compose's editor and saved range.
+
+`clearActiveCompose()` ends the temporary active ownership after dialog
+close by re-enabling the owning launcher and clearing both active
+references. The per-compose ownership entries remain until
+`syncComposeButtons()` no longer discovers the compose, at which point
+the launcher and saved range for that dialog are removed together.
+`GHTML.destroy()` performs the equivalent global release by removing all
+launchers, clearing both per-compose maps, and clearing active
+ownership.
 
 ---
 
