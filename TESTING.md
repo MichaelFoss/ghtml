@@ -172,6 +172,20 @@ ab<inserted HTML>f
 - The dangerous URL is removed.
 - The link text remains.
 
+### SAN-008 Apply URL policy
+
+1. Insert links and images using `http:` and `https:` URLs, plus links
+   using `mailto:` and `tel:` URLs.
+
+2. Insert links or images using relative, malformed, or unsupported URL
+   schemes.
+
+**Expected:**
+
+- Supported URLs and their elements are preserved.
+- Unsupported URL attributes are removed.
+- The owning elements and any text content remain.
+
 ### SAN-005 Preserve inline styles
 
 1. Insert:

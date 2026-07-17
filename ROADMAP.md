@@ -34,9 +34,9 @@ phase, and planned future work.
   - 5.3.2 Implement supported HTML contract (Complete) Implement the
     supported HTML contract through explicit element and attribute
     support, with unsupported markup removed.
-  - 5.3.3 Implement URL policy Implement the documented URL policy with
-    a conservative, fail-closed outcome for URLs that cannot be
-    confidently accepted.
+  - 5.3.3 Implement URL policy (Complete) Implement the documented URL
+    policy with a conservative, fail-closed outcome for URLs that cannot
+    be confidently accepted.
   - 5.3.4 Implement CSS policy Implement the documented CSS policy so
     supported inline styling is explicit and unsupported CSS is removed.
   - 5.3.5 Expand sanitizer unit tests Expand unit tests to validate the

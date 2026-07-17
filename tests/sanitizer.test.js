@@ -46,10 +46,10 @@ describe('sanitizeHtml', () => {
   it('preserves supported element-specific attributes', () => {
     expect(
       sanitizeHtml(
-        '<a href="https://example.com" target="_blank">Example</a><img alt="Example" height="20" src="image.png" width="40">',
+        '<a href="https://example.com" target="_blank">Example</a><img alt="Example" height="20" src="https://example.com/image.png" width="40">',
       ),
     ).toBe(
-      '<a href="https://example.com" target="_blank">Example</a><img alt="Example" height="20" src="image.png" width="40">',
+      '<a href="https://example.com" target="_blank">Example</a><img alt="Example" height="20" src="https://example.com/image.png" width="40">',
     );
   });
 
@@ -80,6 +80,27 @@ describe('sanitizeHtml', () => {
   });
 
   it.each([
+    ['https://example.com', 'https://example.com'],
+    ['http://example.com', 'http://example.com'],
+    ['mailto:person@example.com', 'mailto:person@example.com'],
+    ['tel:+15551234567', 'tel:+15551234567'],
+  ])('preserves supported href URL %s', (url, serializedUrl) => {
+    expect(sanitizeHtml(`<a href="${url}">Example</a>`)).toBe(
+      `<a href="${serializedUrl}">Example</a>`,
+    );
+  });
+
+  it('preserves supported cite URLs', () => {
+    expect(
+      sanitizeHtml(
+        '<blockquote cite="https://example.com/source">Quote</blockquote>',
+      ),
+    ).toBe(
+      '<blockquote cite="https://example.com/source">Quote</blockquote>',
+    );
+  });
+
+  it.each([
     'script',
     'iframe',
     'object',
@@ -106,9 +127,11 @@ describe('sanitizeHtml', () => {
   });
 
   it('removes onload attributes', () => {
-    expect(sanitizeHtml('<img src="image.png" onload="run()">')).toBe(
-      '<img src="image.png">',
-    );
+    expect(
+      sanitizeHtml(
+        '<img src="https://example.com/image.png" onload="run()">',
+      ),
+    ).toBe('<img src="https://example.com/image.png">');
   });
 
   it('removes mixed-case event-handler attributes', () => {
@@ -142,6 +165,24 @@ describe('sanitizeHtml', () => {
   it('removes javascript URLs obfuscated with control characters', () => {
     expect(sanitizeHtml('<img src="java\u0001script:run()">')).toBe(
       '<img>',
+    );
+  });
+
+  it.each([
+    ['relative URLs', 'image.png'],
+    ['protocol-relative URLs', '//example.com/image.png'],
+    ['unknown schemes', 'future:resource'],
+    ['malformed URLs', 'https://'],
+  ])('removes %s', (_description, url) => {
+    expect(sanitizeHtml(`<img src="${url}">`)).toBe('<img>');
+  });
+
+  it('removes schemes that are unsupported for the URL attribute', () => {
+    expect(sanitizeHtml('<img src="mailto:person@example.com">')).toBe(
+      '<img>',
+    );
+    expect(sanitizeHtml('<q cite="tel:+15551234567">Quote</q>')).toBe(
+      '<q>Quote</q>',
     );
   });
 

@@ -78,6 +78,12 @@
     ['th', new Set(['colspan', 'headers', 'rowspan', 'scope'])],
   ]);
 
+  const ALLOWED_URL_SCHEMES = new Map([
+    ['cite', new Set(['http:', 'https:'])],
+    ['href', new Set(['http:', 'https:', 'mailto:', 'tel:'])],
+    ['src', new Set(['http:', 'https:'])],
+  ]);
+
   function sanitizeHtml(html) {
     const parser = new DOMParser();
     const document = parser.parseFromString(html, 'text/html');
@@ -116,10 +122,10 @@
         continue;
       }
 
-      const isUrlAttribute =
-        attributeName === 'href' || attributeName === 'src';
-
-      if (isUrlAttribute && isJavaScriptUrl(attribute.value)) {
+      if (
+        ALLOWED_URL_SCHEMES.has(attributeName) &&
+        !isAllowedUrl(attributeName, attribute.value)
+      ) {
         element.removeAttribute(attribute.name);
       }
     }
@@ -136,17 +142,14 @@
     );
   }
 
-  function isJavaScriptUrl(value) {
-    const normalizedValue = [...value]
-      .filter((character) => !isUrlSeparator(character))
-      .join('')
-      .toLowerCase();
+  function isAllowedUrl(attributeName, value) {
+    try {
+      const url = new URL(value);
 
-    return normalizedValue.startsWith('javascript:');
-  }
-
-  function isUrlSeparator(character) {
-    return character.charCodeAt(0) <= 32;
+      return ALLOWED_URL_SCHEMES.get(attributeName).has(url.protocol);
+    } catch {
+      return false;
+    }
   }
 
   globalThis.sanitizeHtml = sanitizeHtml;
