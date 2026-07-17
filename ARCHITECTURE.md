@@ -171,6 +171,101 @@ Manual DOM insertion was intentionally rejected.
 
 ---
 
+## Sanitizer security model
+
+The sanitizer exists to:
+
+- prevent active content from being inserted into Gmail
+- prevent dangerous markup from being inserted
+- ensure GHTML never intentionally emits malformed HTML
+- preserve valid user-authored HTML whenever possible
+
+The security and authoring concerns are intentionally separate.
+
+Security requires the sanitizer to prevent dangerous content, remove
+unsupported content, and produce valid output.
+
+Ordinary HTML authoring mistakes are not a security concern. Browsers
+already parse and recover from malformed HTML, and that parsing
+determines the DOM on which GHTML operates. GHTML accepts user mistakes
+as browser input and does not attempt to become an HTML validator or
+correct user-authored HTML beyond normal browser parsing.
+
+Sanitizer correctness therefore refers to the output GHTML produces, not
+to repairing arbitrary input.
+
+---
+
+## Supported HTML contract
+
+Supported HTML is defined by an explicit allowlist, not inferred from
+browser capabilities or inherited from a denylist of known risks.
+
+The allowlist represents:
+
+- an explicit collection of supported elements
+- the supported attributes for each element
+- a small collection of globally supported attributes that may apply to
+  every supported element
+
+Elements and attributes outside this model are removed. Support is
+intentionally conservative and expands only through deliberate
+architectural decisions. New elements or attributes must be explicitly
+adopted rather than automatically inherited from broader platform
+support.
+
+---
+
+## URL policy
+
+Every URL-bearing attribute is untrusted input. Its value is evaluated
+independently from the element that contains it, so accepting an element
+does not imply accepting any URL associated with that element.
+
+URL support is defined by an explicit allowlist and architectural
+policy, not by browser behavior. Unsupported, malformed, unknown, and
+future URL schemes are rejected rather than automatically accepted.
+Browser parsing does not determine the sanitizer's security policy.
+
+URL handling intentionally fails closed. Any URL that cannot be
+confidently accepted is removed rather than preserved.
+
+---
+
+## CSS policy
+
+CSS is untrusted input and is evaluated independently from the HTML
+element that contains it. Supporting an element does not imply support
+for its CSS.
+
+Inline CSS may be part of the supported HTML contract, but its support
+is defined by explicit architectural policy rather than browser
+behavior. Unsupported constructs are removed rather than preserved, and
+future CSS capabilities are not automatically accepted. CSS handling
+follows the same conservative, fail-closed philosophy used for HTML
+elements and URLs.
+
+Support for inline CSS does not imply support for `<style>` elements or
+any other CSS delivery mechanism.
+
+---
+
+## Gmail processing model
+
+User-supplied HTML is first interpreted into a DOM. GHTML sanitizes that
+parsed content before insertion and is responsible for the correctness
+and safety of everything it inserts.
+
+Gmail is an independent downstream processor and may normalize, modify,
+or remove markup after insertion. GHTML must not rely on that processing
+to enforce its security policy; it is defense in depth rather than the
+primary security boundary.
+
+GHTML's sanitizer must therefore remain correct even if Gmail's
+processing changes.
+
+---
+
 ## Dialog architecture
 
 The dialog is implemented as a single reusable DOM element.

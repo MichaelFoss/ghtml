@@ -172,17 +172,35 @@ ab<inserted HTML>f
 - The dangerous URL is removed.
 - The link text remains.
 
-### SAN-005 Preserve inline styles
+### SAN-008 Apply URL policy
+
+1. Insert links and images using `http:` and `https:` URLs, plus links
+   using `mailto:` and `tel:` URLs.
+
+2. Insert links or images using relative, malformed, or unsupported URL
+   schemes.
+
+**Expected:**
+
+- Supported URLs and their elements are preserved.
+- Unsupported URL attributes are removed.
+- The owning elements and any text content remain.
+
+### SAN-005 Apply CSS policy
 
 1. Insert:
 
    ```html
-   <span style="color:red;font-weight:bold"> Styled </span>
+   <span style="color:red;font-weight:bold;position:fixed">
+     Styled
+   </span>
    ```
 
 **Expected:**
 
-- Inline styles are preserved.
+- Supported inline styles are preserved.
+- Unsupported inline styles are removed.
+- The element and its text remain.
 
 ### SAN-006 Preserve classes
 
@@ -196,17 +214,18 @@ ab<inserted HTML>f
 
 - Class attribute is preserved.
 
-### SAN-007 Preserve data attributes
+### SAN-007 Remove unsupported attributes
 
 1. Insert:
 
    ```html
-   <div data-id="123">Test</div>
+   <div aria-label="Message" data-id="123" draggable="true">Test</div>
    ```
 
 **Expected:**
 
-- `data-id` remains.
+- Unsupported attributes are removed.
+- The element and its text remain.
 
 ---
 
