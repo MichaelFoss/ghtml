@@ -49,7 +49,7 @@ contract before making behavioral changes.
 - [x] Identify the lifecycle entry point.
 - [x] Identify the lifecycle exit point.
 - [x] Document compose discovery.
-- [ ] Document launcher creation.
+- [x] Document launcher creation.
 - [ ] Document compose ownership.
 - [ ] Document selection ownership.
 - [ ] Document dialog ownership.
@@ -108,6 +108,32 @@ compose remains discovered while its matching message body and dialog
 remain in the document, including when Gmail hides the message body for
 a minimized compose; minimized-state handling is separate from
 discovery.
+
+### Launcher Creation
+
+`syncComposeButtons()` creates a launcher only when a discovered compose
+dialog has no entry in the `composeButtons` map. It calls
+`createComposeButton()` with that dialog, then registers the dialog with
+the shared `ResizeObserver`. The map check makes launcher creation
+idempotent across the initial sync and later mutation-driven syncs.
+
+`createComposeButton()` delegates the DOM construction to
+`createButton()`. The launcher is a GHTML-owned, fixed-position button
+appended directly to `document.body`, outside Gmail-managed toolbar DOM.
+The constructor applies the launcher's accessible label, title, visual
+styles, hover behavior, and interaction listeners. Its `mousedown`
+listener prevents the button from taking focus before the compose
+selection is preserved, and its guarded click listener invokes the
+compose-specific callback.
+
+After construction, `createComposeButton()` stores the launcher under
+its compose dialog in `composeButtons` and positions it relative to that
+dialog. The callback captures the same compose dialog and launcher,
+assigns them as the active compose pair, and opens the shared dialog.
+Window resize and scroll listeners, the compose `ResizeObserver`, and
+each sync pass subsequently reposition all launchers. A minimized
+compose keeps its launcher entry but `positionButton()` hides the button
+until the compose is restored.
 
 ---
 
