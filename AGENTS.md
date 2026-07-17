@@ -328,6 +328,22 @@ before implementing it.
 
 ---
 
+## Discovery Phases
+
+Some roadmap items begin with investigation rather than implementation.
+
+When a task involves changing runtime behavior or architecture:
+
+- First understand the current implementation.
+- Compare it against the documented architecture.
+- Record findings in the temporary task file.
+- Do not implement behavioral changes until the investigation is
+  complete.
+- If implementation approaches are not obvious, stop and present
+  findings for review before modifying production code.
+
+---
+
 ## Current status
 
 Completed work includes:

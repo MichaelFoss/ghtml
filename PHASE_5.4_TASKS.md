@@ -156,10 +156,10 @@ state.
 - [ ] If Gmail can replace the observed root, add a guarded observer
       reattachment path that preserves the existing readiness contract
       and avoids continuous polling.
-- [ ] If transient compose DOM removal is observed, add the smallest
-      lifecycle-safe debounce or confirmation step needed before
-      per-compose cleanup. Preserve cleanup guarantees for genuinely
-      closed compose windows.
+- [ ] If transient compose DOM removal is observed, identify the
+      smallest architectural change that preserves the documented
+      lifecycle guarantees. Implement only after the approach has been
+      reviewed or is clearly implied by the existing architecture.
 - [ ] If non-compose editable dialogs are discovered, tighten discovery
       with the smallest Gmail-specific validation that still supports
       existing compose variants.
