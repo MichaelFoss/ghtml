@@ -125,6 +125,10 @@ No build step is required.
 Project milestones and future plans are documented in
 [ROADMAP.md](ROADMAP.md).
 
+## Privacy
+
+GHTML's privacy practices are documented in [PRIVACY.md](PRIVACY.md).
+
 ---
 
 ## Browser support
