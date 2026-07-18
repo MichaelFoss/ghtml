@@ -36,6 +36,17 @@ Focus on inserting sanitized HTML into Gmail compose windows reliably.
 
 ---
 
+## Repository Philosophy
+
+The repository documentation is the source of truth.
+
+Conversation history is transient.
+
+If documentation and conversation disagree, follow the documentation
+unless explicitly instructed otherwise.
+
+---
+
 ## Technology
 
 - Vanilla JavaScript only
