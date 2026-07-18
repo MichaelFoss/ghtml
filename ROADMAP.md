@@ -21,7 +21,7 @@ phase, and planned future work.
 
 ✓ Complete
 
-## Phase 5 — Hardening & Release Readiness
+## Phase 5 — MVP Release
 
 ▶ In Progress
 
@@ -46,26 +46,26 @@ phase, and planned future work.
   - 5.3.6 Update README supported HTML section (Complete) Update the
     README to describe the supported HTML contract once the
     implementation reflects the documented architecture.
-- 5.4 Lifecycle hardening (In Progress)
-  - 5.4.1 Formalize compose lifecycle (Complete) Document the complete
-    compose lifecycle from discovery through destruction and define
-    ownership transitions.
-  - 5.4.2 Harden compose discovery Ensure compose discovery remains
-    reliable during Gmail navigation, draft restoration, and delayed
-    compose creation.
-  - 5.4.3 Harden compose ownership Ensure launcher ownership, selection
-    ownership, and active dialog ownership remain consistent across
-    multiple compose windows.
-  - 5.4.4 Harden cleanup Verify launchers, listeners, observers, and
-    stored state are consistently removed when compose windows close or
-    Gmail removes DOM nodes.
-  - 5.4.5 Expand lifecycle regression tests Add unit tests covering
-    compose lifecycle helpers and regression scenarios introduced during
-    lifecycle hardening.
-  - 5.4.6 Update architecture documentation Document the finalized
-    compose lifecycle and ownership model.
-- 5.5 Testing expansion (Planned)
-- 5.6 Release polish (Planned)
+- 5.4 Store readiness (In Progress)
+  - 5.4.1 Add required Chrome Web Store manifest metadata (Complete) Add
+    the extension description and icon declarations required for store
+    submission.
+  - 5.4.2 Add privacy policy (Complete) Document what GHTML stores, what
+    it does not collect, and how user-provided HTML is handled.
+  - 5.4.3 Prepare Chrome Web Store listing copy Write the short
+    description, detailed description, category, screenshots, and
+    promotional copy for submission.
+  - 5.4.4 Package extension zip Create a release package that excludes
+    development-only files and includes only the extension files needed
+    by Chrome.
+- 5.5 Release smoke test (Planned)
+  - 5.5.1 Run automated checks.
+  - 5.5.2 Run the critical Gmail manual tests from `TESTING.md`.
+  - 5.5.3 Fix only release-blocking bugs found during smoke testing.
+- 5.6 Chrome Web Store submission (Planned)
+  - 5.6.1 Fill out privacy fields and permission justifications in the
+    Chrome Web Store Developer Dashboard.
+  - 5.6.2 Submit the MVP for Chrome Web Store review.
 
 ---
 
@@ -74,4 +74,5 @@ phase, and planned future work.
 - HTML template management
 - Snippet library
 - Keyboard shortcut customization
-- Chrome Web Store release
+- Lifecycle hardening beyond the MVP smoke test
+- Expanded lifecycle regression tests
