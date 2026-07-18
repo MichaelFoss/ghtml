@@ -46,7 +46,24 @@ phase, and planned future work.
   - 5.3.6 Update README supported HTML section (Complete) Update the
     README to describe the supported HTML contract once the
     implementation reflects the documented architecture.
-- 5.4 Lifecycle hardening (Planned)
+- 5.4 Lifecycle hardening (In Progress)
+  - 5.4.1 Formalize compose lifecycle (Complete) Document the complete
+    compose lifecycle from discovery through destruction and define
+    ownership transitions.
+  - 5.4.2 Harden compose discovery Ensure compose discovery remains
+    reliable during Gmail navigation, draft restoration, and delayed
+    compose creation.
+  - 5.4.3 Harden compose ownership Ensure launcher ownership, selection
+    ownership, and active dialog ownership remain consistent across
+    multiple compose windows.
+  - 5.4.4 Harden cleanup Verify launchers, listeners, observers, and
+    stored state are consistently removed when compose windows close or
+    Gmail removes DOM nodes.
+  - 5.4.5 Expand lifecycle regression tests Add unit tests covering
+    compose lifecycle helpers and regression scenarios introduced during
+    lifecycle hardening.
+  - 5.4.6 Update architecture documentation Document the finalized
+    compose lifecycle and ownership model.
 - 5.5 Testing expansion (Planned)
 - 5.6 Release polish (Planned)
 
