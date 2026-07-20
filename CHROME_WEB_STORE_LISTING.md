@@ -162,6 +162,7 @@ Recommended direction:
 Generated promotional image:
 
 - `docs/store-assets/small-promo-440x280.png`
+- `docs/store-assets/marquee-promo-1400x560.png`
 
 Requirements and constraints:
 

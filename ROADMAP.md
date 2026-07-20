@@ -52,14 +52,13 @@ phase, and planned future work.
     submission.
   - 5.4.2 Add privacy policy (Complete) Document what GHTML stores, what
     it does not collect, and how user-provided HTML is handled.
-  - 5.4.3 Prepare Chrome Web Store listing copy (In Progress) Draft the
-    short description, detailed description, category, screenshot plan,
-    promotional image plan, privacy field notes, and permission
-    justifications for submission. Remaining work requires captured
-    screenshots and promotional image assets.
-  - 5.4.4 Package extension zip Create a release package that excludes
-    development-only files and includes only the extension files needed
-    by Chrome.
+  - 5.4.3 Prepare Chrome Web Store listing copy (Complete) Draft the
+    short description, detailed description, category, screenshots,
+    promotional image, privacy field notes, and permission
+    justifications for submission.
+  - 5.4.4 Package extension zip (Complete) Create a release package that
+    excludes development-only files and includes only the extension
+    files needed by Chrome.
 - 5.5 Release smoke test (Planned)
   - 5.5.1 Run automated checks.
   - 5.5.2 Run the critical Gmail manual tests from `TESTING.md`.
