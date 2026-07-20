@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Last updated: July 18, 2026
+Last updated: July 20, 2026
 
 GHTML is a Chrome extension that inserts user-provided HTML into Gmail
 compose windows.
@@ -26,6 +26,10 @@ GHTML does not collect, transmit, sell, or share your data.
 
 GHTML does not send your HTML, email drafts, browsing activity, Gmail
 content, or extension settings to the developer or to any third party.
+
+GHTML's use of information received from Chrome extension APIs and Gmail
+page access adheres to the Chrome Web Store User Data Policy, including
+the Limited Use requirements.
 
 ## Gmail Access
 

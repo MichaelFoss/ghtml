@@ -91,6 +91,7 @@ No build step is required.
 ├── .vscode/
 ├── AGENTS.md
 ├── ARCHITECTURE.md
+├── CHROME_WEB_STORE_LISTING.md
 ├── LICENSE
 ├── README.md
 ├── ROADMAP.md
@@ -124,6 +125,9 @@ No build step is required.
 
 Project milestones and future plans are documented in
 [ROADMAP.md](ROADMAP.md).
+
+Chrome Web Store listing copy and submission notes are drafted in
+[CHROME_WEB_STORE_LISTING.md](CHROME_WEB_STORE_LISTING.md).
 
 ## Privacy
 
